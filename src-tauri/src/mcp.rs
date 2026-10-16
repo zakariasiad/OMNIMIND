@@ -37,12 +37,14 @@ fn is_public_address(ip: IpAddr) -> bool {
                 || ip.is_unspecified()
                 || ip.is_multicast()
                 || a == 0
+                || a >= 240
                 || (a == 100 && (64..=127).contains(&b))
                 || (a == 192 && b == 0 && c == 0)
                 || (a == 192 && b == 0 && c == 2)
                 || (a == 198 && (b == 18 || b == 19))
                 || (a == 198 && b == 51 && c == 100)
-                || (a == 203 && b == 0 && c == 113))
+                || (a == 203 && b == 0 && c == 113)
+                || (a == 192 && b == 88 && c == 99))
         }
         IpAddr::V6(ip) => {
             let segments = ip.segments();
@@ -51,6 +53,10 @@ fn is_public_address(ip: IpAddr) -> bool {
                 || ip.is_multicast()
                 || (segments[0] & 0xfe00) == 0xfc00
                 || (segments[0] & 0xffc0) == 0xfe80
+                || (segments[0] & 0xe000) != 0x2000
+                || (segments[0] == 0x2001 && segments[1] == 0x0db8)
+                || (segments[0] == 0x2001 && segments[1] < 0x0200)
+                || segments[0] == 0x2002
                 || ip.to_ipv4_mapped().is_some_and(|mapped| is_public_address(IpAddr::V4(mapped))))
         }
     }
