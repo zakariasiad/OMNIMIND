@@ -1,7 +1,7 @@
 use reqwest::{header, Client, StatusCode};
 use serde::Serialize;
 use serde_json::{json, Value};
-use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
+use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
 use url::Url;
 
@@ -62,7 +62,7 @@ fn is_public_address(ip: IpAddr) -> bool {
     }
 }
 
-fn validated_endpoint(endpoint: &str) -> Result<(Url, Vec<SocketAddr>), String> {
+fn parse_endpoint(endpoint: &str) -> Result<(Url, String, u16), String> {
     if endpoint.len() > 2048 || endpoint.chars().any(char::is_control) {
         return Err("The MCP endpoint is too long or contains invalid characters.".into());
     }
@@ -73,11 +73,19 @@ fn validated_endpoint(endpoint: &str) -> Result<(Url, Vec<SocketAddr>), String> 
     if !url.username().is_empty() || url.password().is_some() || url.query().is_some() || url.fragment().is_some() {
         return Err("MCP endpoint URLs must not contain credentials, query parameters, or fragments.".into());
     }
-    let host = url.host_str().ok_or_else(|| "The MCP endpoint must include a hostname.".to_string())?;
+    let host = url.host_str().ok_or_else(|| "The MCP endpoint must include a hostname.".to_string())?.to_owned();
     let port = url.port_or_known_default().ok_or_else(|| "The MCP endpoint has an invalid port.".to_string())?;
-    let addresses: Vec<SocketAddr> = (host, port).to_socket_addrs()
-        .map_err(|_| "Could not resolve the MCP endpoint hostname.".to_string())?
-        .collect();
+    Ok((url, host, port))
+}
+
+async fn validated_endpoint(endpoint: &str) -> Result<(Url, Vec<SocketAddr>), String> {
+    let (url, host, port) = parse_endpoint(endpoint)?;
+    let resolved = tokio::time::timeout(
+        Duration::from_secs(5),
+        tokio::net::lookup_host((host.as_str(), port)),
+    ).await.map_err(|_| "Resolving the MCP endpoint timed out.".to_string())?
+        .map_err(|_| "Could not resolve the MCP endpoint hostname.".to_string())?;
+    let addresses: Vec<SocketAddr> = resolved.collect();
     if addresses.is_empty() || addresses.len() > 32 || addresses.iter().any(|address| !is_public_address(address.ip())) {
         return Err("The MCP endpoint resolves to a private, local, or otherwise restricted network address.".into());
     }
@@ -198,7 +206,7 @@ async fn post_rpc(
 
 #[tauri::command]
 pub async fn inspect_mcp_server(endpoint: String) -> Result<McpServerInspection, String> {
-    let (url, addresses) = validated_endpoint(&endpoint)?;
+    let (url, addresses) = validated_endpoint(&endpoint).await?;
     let host = url.host_str().ok_or_else(|| "The MCP endpoint must include a hostname.".to_string())?;
     let client = build_client(host, &addresses)?;
     let (initialized, session) = post_rpc(&client, &url, None, json!({
@@ -274,10 +282,10 @@ mod tests {
 
     #[test]
     fn rejects_non_https_and_embedded_credentials() {
-        assert!(validated_endpoint("http://example.com/mcp").is_err());
-        assert!(validated_endpoint("https://user:pass@example.com/mcp").is_err());
-        assert!(validated_endpoint("https://example.com/mcp?token=secret").is_err());
-        assert!(validated_endpoint("https://localhost/mcp").is_err());
+        assert!(parse_endpoint("http://example.com/mcp").is_err());
+        assert!(parse_endpoint("https://user:pass@example.com/mcp").is_err());
+        assert!(parse_endpoint("https://example.com/mcp?token=secret").is_err());
+        assert!(parse_endpoint("https://localhost/mcp").is_ok());
     }
 
     #[test]
