@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity, ArrowDown, ArrowUpRight, Check, CheckCircle2, ChevronDown, CircleHelp,
   Command, Cpu, Eye, EyeOff, Gauge, KeyRound, LayoutDashboard, LoaderCircle,
@@ -9,14 +9,14 @@ import {
   getInitialProviderStates, isProviderId, PROVIDERS,
   type ProviderId, type ProviderState,
 } from "./lib/providers";
-import { chatCompletion, removeProviderKey, saveProviderKey, testProvider, type ChatMessage } from "./lib/desktop";
+import { chatCompletion, listSavedProviderIds, removeProviderKey, saveProviderKey, testProvider, type ChatMessage } from "./lib/desktop";
 
 type View = "workspace" | "models" | "runs" | "settings";
 type Notice = { kind: "success" | "error" | "info"; text: string };
 
 export default function App() {
   const [view, setView] = useState<View>("workspace");
-  const [states, setStates] = useState<Record<ProviderId, ProviderState>>(getInitialProviderStates);
+  const [states, setStates] = useState<Record<ProviderId, ProviderState>>(() => loadPersistedProviderStates());
   const [selectedProvider, setSelectedProvider] = useState<ProviderId>("groq");
   const [selectedModel, setSelectedModel] = useState("");
   const [keyDraft, setKeyDraft] = useState("");
@@ -33,6 +33,64 @@ export default function App() {
     () => Object.values(states).filter((state) => state.status === "connected" || state.status === "disabled").length,
     [states],
   );
+  useEffect(() => {
+    try {
+      const safeMetadata = Object.fromEntries(
+        Object.entries(states).map(([id, state]) => [id, {
+          models: state.models,
+          enabledModels: state.enabledModels,
+          lastChecked: state.lastChecked,
+        }]),
+      );
+      localStorage.setItem("omnimind.providerMetadata.v1", JSON.stringify(safeMetadata));
+    } catch {
+      // Local metadata is optional; credentials are never stored here.
+    }
+  }, [states]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function restoreConnections() {
+      try {
+        const savedIds = await listSavedProviderIds();
+        for (const providerId of savedIds) {
+          if (cancelled) return;
+          setStates((current) => ({ ...current, [providerId]: { ...current[providerId], status: "connecting", error: undefined } }));
+          try {
+            const result = await testProvider(providerId);
+            if (cancelled) return;
+            setStates((current) => {
+              const previous = current[providerId];
+              const previousEnabled = previous.enabledModels;
+              const enabledModels = result.models.filter((model) =>
+                previousEnabled.length === 0 || previousEnabled.includes(model.id),
+              ).slice(0, 6).map((model) => model.id);
+              return { ...current, [providerId]: {
+                ...previous,
+                status: "connected",
+                models: result.models,
+                enabledModels,
+                lastChecked: new Date().toISOString(),
+                error: undefined,
+              } };
+            });
+          } catch (error) {
+            if (cancelled) return;
+            setStates((current) => ({ ...current, [providerId]: {
+              ...current[providerId],
+              status: "error",
+              error: error instanceof Error ? error.message : "Provider check failed.",
+            } }));
+          }
+        }
+      } catch (error) {
+        if (!cancelled) setNotice({ kind: "error", text: error instanceof Error ? error.message : "Could not check saved provider connections." });
+      }
+    }
+    void restoreConnections();
+    return () => { cancelled = true; };
+  }, []);
+
   const activeModels = useMemo(
     () => Object.values(states).filter((state) => state.status === "connected")
       .flatMap((state) => state.models.filter((model) => state.enabledModels.includes(model.id))
@@ -292,4 +350,26 @@ export default function App() {
 
 function ZapIcon() {
   return <span className="groq-zap">G</span>;
+}
+
+function loadPersistedProviderStates(): Record<ProviderId, ProviderState> {
+  const initial = getInitialProviderStates();
+  try {
+    const raw = localStorage.getItem("omnimind.providerMetadata.v1");
+    if (!raw) return initial;
+    const parsed = JSON.parse(raw) as Partial<Record<ProviderId, { models?: ProviderState["models"]; enabledModels?: string[]; lastChecked?: string }>>;
+    for (const provider of PROVIDERS) {
+      const metadata = parsed[provider.id];
+      if (!metadata) continue;
+      initial[provider.id] = {
+        ...initial[provider.id],
+        models: Array.isArray(metadata.models) ? metadata.models.filter((model) => typeof model.id === "string" && typeof model.name === "string") : [],
+        enabledModels: Array.isArray(metadata.enabledModels) ? metadata.enabledModels.filter((id) => typeof id === "string") : [],
+        lastChecked: typeof metadata.lastChecked === "string" ? metadata.lastChecked : undefined,
+      };
+    }
+  } catch {
+    // Corrupt or unavailable UI metadata must not block startup.
+  }
+  return initial;
 }
