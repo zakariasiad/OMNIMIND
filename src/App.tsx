@@ -11,8 +11,9 @@ import {
 } from "./lib/providers";
 import { chatCompletion, listSavedProviderIds, removeProviderKey, saveProviderKey, testProvider, type ChatMessage } from "./lib/desktop";
 import { executeTaskGraph, type TaskDefinition } from "./lib/orchestrator";
+import McpHub from "./components/McpHub";
 
-type View = "workspace" | "models" | "runs" | "settings";
+type View = "workspace" | "models" | "mcp" | "runs" | "settings";
 type Notice = { kind: "success" | "error" | "info"; text: string };
 
 export default function App() {
@@ -319,6 +320,7 @@ export default function App() {
   const navItems: { id: View; label: string; icon: typeof LayoutDashboard }[] = [
     { id: "workspace", label: "Workspace", icon: LayoutDashboard },
     { id: "models", label: "Model Hub", icon: Cpu },
+    { id: "mcp", label: "MCP Hub", icon: Workflow },
     { id: "runs", label: "Run history", icon: Workflow },
     { id: "settings", label: "Settings", icon: Settings2 },
   ];
@@ -412,6 +414,8 @@ export default function App() {
             <div className="security-callout"><ShieldCheck size={20} /><div><strong>Credentials are handled by the desktop layer</strong><p>In the installed app, API keys are passed to a native command and stored in the operating system credential vault. They are never written to ordinary app settings. Browser preview does not save credentials or make provider calls.</p></div></div>
           </section>
         )}
+
+        {view === "mcp" && <McpHub />}
 
         {view === "runs" && (
           <section className="content-page"><div className="page-heading"><div><span className="eyebrow">YOUR WORK</span><h1>Run history</h1><p>Review recent requests and the models used to complete them.</p></div></div>
