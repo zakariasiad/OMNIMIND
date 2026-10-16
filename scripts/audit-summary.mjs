@@ -19,10 +19,11 @@ try {
         : { title: advisory.title, url: advisory.url, range: advisory.range },
     ),
   }));
-  console.log(JSON.stringify({
-    counts: report.metadata?.vulnerabilities,
-    vulnerabilities,
-  }, null, 2));
+  const counts = report.metadata?.vulnerabilities ?? {};
+  console.log(JSON.stringify({ counts, vulnerabilities }, null, 2));
+  if ((counts.high ?? 0) > 0 || (counts.critical ?? 0) > 0) {
+    process.exitCode = 1;
+  }
 } catch {
   console.log("Dependency audit did not return parseable JSON.");
   if (result.stderr) console.log(result.stderr.slice(0, 3000));
