@@ -6,6 +6,7 @@
 - Portable core: keep provider contracts, task planning, DAG validation, scheduling policy, and result synthesis independent of the UI.
 - Local-first execution for the desktop MVP: keep run data on the user's device and call official provider APIs through a controlled native transport.
 - Credential isolation: provider secrets live in an OS-backed secure vault, not SQLite or UI state.
+- MCP tools: runtime MCP support is planned, not implemented. MCP client and server connections must be isolated behind a dedicated permission-enforcing service.
 - Mobile later: share stable TypeScript contracts where practical; use platform-specific secure storage and permission boundaries.
 - Gateway reuse is conditional. The existing Vercel deployment is failing and its source was not located in the inspected Framework-MCPs tree. Do not depend on it until verified.
 
@@ -30,9 +31,13 @@ flowchart TD
     CORE <--> DB[(Local SQLite)]
     CORE --> EVENTS[Typed Run Events]
     EVENTS --> UI
+    CORE -. Planned .-> MCP[MCP Permission Gateway]
+    MCP -. User-approved tools .-> SERVERS[User-configured MCP Servers]
     UI -. Future client .-> MOBILE[Mobile Companion]
     MOBILE -. Shared contracts / optional service .-> CORE
 ```
+
+The MCP gateway shown is a target architecture only; it is not present in the current executable build. Developer workflow connectors used to modify the repository are separate from the app's runtime capabilities.
 
 ## Provider connection boundary
 
@@ -43,6 +48,18 @@ flowchart TD
 5. The adapter sends requests to an approved HTTPS endpoint and redacts sensitive data from errors.
 6. The connection registry records safe metadata and the result of the connection test.
 7. Disabling a connection excludes it from routing without deleting the credential. Removing it deletes the credential and connection metadata; revoke remote OAuth grants where supported.
+
+## MCP trust and execution boundary
+
+1. A user explicitly configures a server and reviews its transport, executable or URL, declared capabilities, and requested permissions.
+2. The client validates configuration and starts/connects only after explicit confirmation.
+3. A dedicated policy gateway validates tool name, schema, permission scope, timeout, output size, and current user approval.
+4. The model may propose a tool call but cannot authorize it or change permissions.
+5. Server output is treated as untrusted data, sanitized for display, and clearly separated from policy instructions.
+6. Consequential actions require a confirmation screen showing the target and arguments.
+7. Audit events redact secrets and sensitive values; users can disable or remove a server and revoke credentials.
+
+Do not support automatic server installation, shell-string execution, credential scraping, or unrestricted filesystem/network access. See [MCP Integrations](MCP_INTEGRATIONS.md) for transport and acceptance criteria.
 
 ## Run sequence
 
@@ -81,6 +98,7 @@ flowchart TD
 | Budget exhausted | Stop dispatching and report partial completion |
 | User cancellation | Stop cancellable tasks and preserve accurate state |
 | Credential vault unavailable | Fail closed; do not silently write secrets to a plaintext fallback |
+| MCP server unavailable or malformed | Disable the server for the current run, record a redacted diagnostic, and do not bypass permissions |
 
 ## Build and release principles
 
