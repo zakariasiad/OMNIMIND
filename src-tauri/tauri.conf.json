@@ -27,9 +27,12 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "shortDescription": "A coordinated multi-model AI workspace",
     "longDescription": "OMNIMIND AI coordinates model providers to produce one coherent result.",
-    "category": "Productivity"
+    "category": "Productivity",
+    "icon": []
   }
 }
