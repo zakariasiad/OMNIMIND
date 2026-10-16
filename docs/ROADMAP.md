@@ -70,7 +70,8 @@ This roadmap describes intended work, not completed features. Verify each phase 
 - [x] Add a narrow native MCP inspection command and MCP Hub UI for HTTPS server discovery.
 - [ ] Add local stdio server configuration with executable/argument validation and process limits.
 - [x] Add initial HTTPS endpoint validation, DNS address pinning, private-network blocking, redirect blocking, timeouts, and bounded response/tool sizes.
-- [x] Add tool discovery and local metadata storage.\n- [ ] Complete server health, enable/disable, reconnect, and removal lifecycle states.
+- [x] Add tool discovery and local metadata storage.
+- [ ] Complete server health, enable/disable, reconnect, and removal lifecycle states.
 - [ ] Add explicit per-tool permissions, user approval for consequential actions, and redacted audit events.
 - [ ] Add automated tests for timeouts, cancellation, malicious server output, prompt injection, path traversal, and private-network access.
 - [ ] Add GitHub, filesystem, or research integrations only after the runtime client and permission system are ready; do not auto-install or auto-trust servers.
