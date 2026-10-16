@@ -120,6 +120,13 @@ export default function App() {
     setStates((current) => ({ ...current, [providerId]: { ...current[providerId], ...update } }));
   }
 
+  function closeProviderModal() {
+    if (busy) return;
+    setAddingProvider(null);
+    setKeyDraft("");
+    setShowKey(false);
+  }
+
   async function connectProvider() {
     if (!addingProvider || keyDraft.trim().length < 8) {
       setNotice({ kind: "error", text: "Enter a valid API key before saving." });
@@ -425,13 +432,13 @@ export default function App() {
         </section>
       </div>}
 
-      {addingProvider && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) setAddingProvider(null); }}>
+      {addingProvider && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeProviderModal(); }}>
         <section className="connect-modal" role="dialog" aria-modal="true" aria-labelledby="connect-title">
-          <div className="modal-top"><div className="modal-icon"><KeyRound size={21} /></div><button className="icon-button" onClick={() => setAddingProvider(null)} disabled={busy} aria-label="Close"><X size={18} /></button></div>
+          <div className="modal-top"><div className="modal-icon"><KeyRound size={21} /></div><button className="icon-button" onClick={closeProviderModal} disabled={busy} aria-label="Close"><X size={18} /></button></div>
           <span className="eyebrow">{states[addingProvider].status === "not_configured" ? "ADD A CONNECTION" : "UPDATE CREDENTIAL"}</span><h2 id="connect-title">{states[addingProvider].status === "not_configured" ? "Connect" : "Replace API key"} {PROVIDERS.find((p) => p.id === addingProvider)?.name}</h2><p className="modal-copy">Add or replace the API key used by OMNIMIND. The app does not need your provider website password.</p>
           <label className="field-label" htmlFor="api-key">API key</label><div className="secret-input"><input id="api-key" autoFocus type={showKey ? "text" : "password"} value={keyDraft} onChange={(event) => setKeyDraft(event.target.value)} placeholder="Paste your API key" autoComplete="off" spellCheck={false} /><button className="icon-button" onClick={() => setShowKey(!showKey)} type="button" aria-label={showKey ? "Hide key" : "Show key"}>{showKey ? <EyeOff size={16} /> : <Eye size={16} />}</button></div>
           <div className="secret-hint"><ShieldCheck size={14} /> In the installed app, the key is stored in the OS credential vault and never displayed again.</div>
-          <div className="modal-actions"><button className="secondary-button" onClick={() => setAddingProvider(null)} disabled={busy}>Cancel</button><button className="primary-button" onClick={() => void connectProvider()} disabled={busy || keyDraft.trim().length < 8}>{busy ? <><LoaderCircle size={15} className="spin" /> Connecting…</> : <><Check size={15} /> Save & test</>}</button></div>
+          <div className="modal-actions"><button className="secondary-button" onClick={closeProviderModal} disabled={busy}>Cancel</button><button className="primary-button" onClick={() => void connectProvider()} disabled={busy || keyDraft.trim().length < 8}>{busy ? <><LoaderCircle size={15} className="spin" /> Connecting…</> : <><Check size={15} /> Save & test</>}</button></div>
           <p className="modal-legal">Use only an API key you are authorized to use. Provider pricing, free tiers, and rate limits are controlled by the provider.</p>
         </section>
       </div>}
