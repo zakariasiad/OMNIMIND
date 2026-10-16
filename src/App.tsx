@@ -36,7 +36,7 @@ export default function App() {
   const activeModels = useMemo(
     () => Object.values(states).filter((state) => state.status === "connected")
       .flatMap((state) => state.models.filter((model) => state.enabledModels.includes(model.id))
-        .map((model) => ({ ...model, providerId: state.id, providerName: PROVIDERS.find((p) => p.id === state.id)?.name ?? state.id })),
+        .map((model) => ({ ...model, providerId: state.id, providerName: PROVIDERS.find((p) => p.id === state.id)?.name ?? state.id }))),
     [states],
   );
 
