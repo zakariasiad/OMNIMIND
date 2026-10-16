@@ -17,6 +17,11 @@ export interface ChatResult {
   model: string;
 }
 
+export async function listSavedProviderIds(): Promise<ProviderId[]> {
+  if (!isTauri()) return [];
+  return invoke<ProviderId[]>("list_saved_provider_ids");
+}
+
 export async function saveProviderKey(providerId: ProviderId, apiKey: string): Promise<void> {
   if (!isTauri()) {
     throw new Error("Secure provider connections are available in the installed desktop app, not the browser preview.");
