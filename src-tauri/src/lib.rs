@@ -242,3 +242,33 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running OMNIMIND AI");
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn provider_catalog_uses_fixed_https_origins() {
+        for id in ["groq", "openrouter", "gemini"] {
+            let provider = provider_config(id).expect("known provider");
+            assert!(provider.base_url.starts_with("https://"));
+            assert!(!provider.base_url.contains('?'));
+        }
+    }
+
+    #[test]
+    fn unknown_provider_is_rejected() {
+        assert!(provider_config("unknown").is_err());
+        assert!(provider_config("https://example.com").is_err());
+    }
+
+    #[test]
+    fn error_messages_do_not_include_credentials() {
+        let provider = provider_config("groq").expect("known provider");
+        let message = safe_status_error(StatusCode::UNAUTHORIZED, &provider);
+        assert!(message.contains("rejected this API key"));
+        assert!(!message.contains("Bearer"));
+        assert!(!message.contains("secret-value"));
+    }
+}
