@@ -371,7 +371,7 @@ export default function App() {
                 </div>
               </div>
               <div className="keyboard-hint">Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to run</div>
-              <p className="data-flow-note"><ShieldCheck size={14} /> Prompts and context needed for a task are sent directly to the selected AI provider. OMNIMIND cloud sync is not enabled in this build.</p>
+              <p className="data-flow-note"><ShieldCheck size={14} /> Prompts and context needed for a task are sent directly to the selected AI providers. OMNIMIND cloud sync is not enabled in this build.</p>
             </div>
             {(busy || answer || runStatus !== "Ready for your first task") && <div className="result-card">
               <div className="result-head"><div><span className="result-icon"><Activity size={16} /></span><strong>Run output</strong></div><span className={`run-state ${busy ? "running" : answer ? "done" : "failed"}`}>{busy && <LoaderCircle size={12} className="spin" />}{runStatus}</span></div>
