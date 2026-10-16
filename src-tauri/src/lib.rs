@@ -234,7 +234,7 @@ async fn chat_completion(
 pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
-            save_provider_key,
+            list_saved_provider_ids,\n            save_provider_key,
             remove_provider_key,
             test_provider_connection,
             chat_completion
