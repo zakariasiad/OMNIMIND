@@ -30,12 +30,20 @@ export default function App() {
   const [answer, setAnswer] = useState("");
   const [runStatus, setRunStatus] = useState("Ready for your first task");
   const [collaborationSummary, setCollaborationSummary] = useState("Single-model request");
-  const [history, setHistory] = useState<{ prompt: string; provider: string; model: string; time: string }[]>([]);
+  const [history, setHistory] = useState<{ prompt: string; provider: string; model: string; time: string }[]>(() => loadPersistedHistory());
 
   const configured = useMemo(
     () => Object.values(states).filter((state) => state.status === "connected" || state.status === "disabled").length,
     [states],
   );
+  useEffect(() => {
+    try {
+      localStorage.setItem("omnimind.runHistory.v1", JSON.stringify(history.slice(0, 100)));
+    } catch {
+      // Run history is best-effort local data; storage failures must not block the workspace.
+    }
+  }, [history]);
+
   useEffect(() => {
     try {
       const safeMetadata = Object.fromEntries(
@@ -407,13 +415,13 @@ export default function App() {
 
         {view === "runs" && (
           <section className="content-page"><div className="page-heading"><div><span className="eyebrow">YOUR WORK</span><h1>Run history</h1><p>Review recent requests and the models used to complete them.</p></div></div>
-            {history.length ? <div className="history-list">{history.map((item, index) => <article className="history-item" key={`${item.time}-${index}`}><div className="history-icon"><CheckCircle2 size={18} /></div><div className="history-main"><strong>{item.prompt}</strong><span>{item.provider} · {item.model}</span></div><time>{item.time}</time></article>)}</div> : <div className="empty-state"><div className="empty-icon"><Workflow size={24} /></div><h3>No runs yet</h3><p>Your completed tasks will appear here. Connect a model and run your first request.</p><button className="secondary-button" onClick={() => setView("workspace")}>Go to workspace <ArrowDown size={15} /></button></div>}
+            {history.length ? <><div className="history-toolbar"><span>{history.length} recent completed run{history.length === 1 ? "" : "s"} · stored on this device</span><button className="danger-small" onClick={() => { if (window.confirm("Clear all locally saved run history? This cannot be undone.")) setHistory([]); }}><Trash2 size={13} /> Clear history</button></div><div className="history-list">{history.map((item, index) => <article className="history-item" key={`${item.time}-${index}`}><div className="history-icon"><CheckCircle2 size={18} /></div><div className="history-main"><strong>{item.prompt}</strong><span>{item.provider} · {item.model}</span></div><time>{new Date(item.time).toLocaleString()}</time></article>)}</div></> : <div className="empty-state"><div className="empty-icon"><Workflow size={24} /></div><h3>No runs yet</h3><p>Your completed tasks will appear here. Connect a model and run your first request.</p><button className="secondary-button" onClick={() => setView("workspace")}>Go to workspace <ArrowDown size={15} /></button></div>}
           </section>
         )}
 
         {view === "settings" && (
           <section className="content-page"><div className="page-heading"><div><span className="eyebrow">PREFERENCES</span><h1>Settings</h1><p>Control how OMNIMIND runs and stores your work.</p></div></div>
-            <div className="settings-group"><div className="settings-title"><ShieldCheck size={18} /><div><strong>Privacy & storage</strong><span>Desktop-first, local workspace</span></div></div><div className="setting-row"><div><strong>Provider credentials</strong><span>Stored in the operating system credential vault in the installed app.</span></div><span className="setting-value">OS vault</span></div><div className="setting-row"><div><strong>Cloud synchronization</strong><span>No OMNIMIND cloud sync is enabled in this build.</span></div><span className="setting-value muted">Off</span></div><div className="setting-row"><div><strong>Local run history</strong><span>History currently exists for this application session; durable SQLite persistence is planned.</span></div><span className="setting-value muted">Planned</span></div></div>
+            <div className="settings-group"><div className="settings-title"><ShieldCheck size={18} /><div><strong>Privacy & storage</strong><span>Desktop-first, local workspace</span></div></div><div className="setting-row"><div><strong>Provider credentials</strong><span>Stored in the operating system credential vault in the installed app.</span></div><span className="setting-value">OS vault</span></div><div className="setting-row"><div><strong>Cloud synchronization</strong><span>No OMNIMIND cloud sync is enabled in this build.</span></div><span className="setting-value muted">Off</span></div><div className="setting-row"><div><strong>Local run history</strong><span>Up to 100 completed-run summaries are saved in this device's app storage. Clear them from Run history. Prompts may contain sensitive information.</span></div><span className="setting-value">Local</span></div></div>
             <div className="settings-group"><div className="settings-title"><Gauge size={18} /><div><strong>Execution policy</strong><span>Limits planned for orchestration runs</span></div></div><div className="setting-row"><div><strong>Maximum concurrent tasks</strong><span>Controls parallel model work.</span></div><span className="setting-value">Planned</span></div><div className="setting-row"><div><strong>Automatic fallback</strong><span>Only compatible, enabled providers should be used as fallback.</span></div><span className="setting-value muted">Not active</span></div></div>
             <div className="settings-group"><div className="settings-title"><Settings2 size={18} /><div><strong>Application</strong><span>Build and diagnostics</span></div></div><div className="setting-row"><div><strong>Version</strong><span>OMNIMIND AI desktop foundation</span></div><span className="setting-value">0.1.0</span></div><div className="setting-row"><div><strong>Diagnostics</strong><span>Diagnostic export with credential redaction will be added before beta.</span></div><button className="secondary-small" onClick={() => setNotice({ kind: "info", text: "Diagnostics export is planned and not available in this build." })}>Details</button></div></div>
           </section>
@@ -449,6 +457,24 @@ export default function App() {
 
 function ZapIcon() {
   return <span className="groq-zap">G</span>;
+}
+
+function loadPersistedHistory(): { prompt: string; provider: string; model: string; time: string }[] {
+  try {
+    const raw = localStorage.getItem("omnimind.runHistory.v1");
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is { prompt: string; provider: string; model: string; time: string } =>
+      item !== null && typeof item === "object" &&
+      typeof item.prompt === "string" && item.prompt.length <= 200_000 &&
+      typeof item.provider === "string" && item.provider.length <= 200 &&
+      typeof item.model === "string" && item.model.length <= 500 &&
+      typeof item.time === "string" && !Number.isNaN(Date.parse(item.time))
+    ).slice(0, 100);
+  } catch {
+    return [];
+  }
 }
 
 function loadPersistedProviderStates(): Record<ProviderId, ProviderState> {
