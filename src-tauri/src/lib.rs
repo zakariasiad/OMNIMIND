@@ -188,6 +188,32 @@ struct ChatResult {
     model: String,
 }
 
+const MAX_INPUT_CHARS: usize = 200_000;
+const MAX_OUTPUT_TOKENS: u32 = 2_048;
+
+fn validate_chat_input(model: &str, messages: &[ChatMessage]) -> Result<(), String> {
+    if model.trim().is_empty() || model.len() > 300 || model.chars().any(char::is_control) {
+        return Err("Choose a valid model from the provider's available model list.".to_string());
+    }
+    if messages.is_empty() || messages.len() > 50 {
+        return Err("The request must contain between 1 and 50 messages.".to_string());
+    }
+    let mut total_chars = 0usize;
+    for message in messages {
+        if !matches!(message.role.as_str(), "system" | "user" | "assistant") {
+            return Err("The request contains an unsupported message role.".to_string());
+        }
+        if message.content.len() > 100_000 {
+            return Err("A message is too large. Shorten the prompt or context and try again.".to_string());
+        }
+        total_chars = total_chars.saturating_add(message.content.chars().count());
+        if total_chars > MAX_INPUT_CHARS {
+            return Err("The total request is too large. Shorten the prompt or context and try again.".to_string());
+        }
+    }
+    Ok(())
+}
+
 #[tauri::command]
 async fn chat_completion(
     provider_id: String,
@@ -195,17 +221,7 @@ async fn chat_completion(
     messages: Vec<ChatMessage>,
 ) -> Result<ChatResult, String> {
     let provider = provider_config(&provider_id)?;
-    if model.trim().is_empty() || model.len() > 300 {
-        return Err("Choose a valid model from the provider's available model list.".to_string());
-    }
-    if messages.is_empty() || messages.len() > 50 {
-        return Err("The request must contain between 1 and 50 messages.".to_string());
-    }
-    if messages.iter().any(|message| {
-        !matches!(message.role.as_str(), "system" | "user" | "assistant") || message.content.len() > 100_000
-    }) {
-        return Err("The request contains an unsupported message role or an oversized message.".to_string());
-    }
+    validate_chat_input(&model, &messages)?;
 
     let secret = load_secret(&provider_id)?;
     let client = http_client()?;
@@ -213,6 +229,7 @@ async fn chat_completion(
         "model": model,
         "messages": messages,
         "temperature": 0.2,
+        "max_tokens": MAX_OUTPUT_TOKENS,
         "stream": false
     });
     let response = client
@@ -237,6 +254,9 @@ async fn chat_completion(
     let content = payload.pointer("/choices/0/message/content")
         .and_then(Value::as_str)
         .ok_or_else(|| format!("{} returned no text content for this request.", provider.label))?;
+    if content.chars().count() > MAX_INPUT_CHARS {
+        return Err(format!("{} returned an unexpectedly large response. Try a shorter request.", provider.label));
+    }
     let used_model = payload.get("model").and_then(Value::as_str).unwrap_or(&model).to_string();
     Ok(ChatResult { content: content.to_string(), model: used_model })
 }
@@ -273,6 +293,21 @@ mod tests {
     fn unknown_provider_is_rejected() {
         assert!(provider_config("unknown").is_err());
         assert!(provider_config("https://example.com").is_err());
+    }
+
+    #[test]
+    fn chat_input_rejects_invalid_roles_and_oversized_context() {
+        let invalid_role = vec![ChatMessage { role: "tool".into(), content: "x".into() }];
+        assert!(validate_chat_input("model-id", &invalid_role).is_err());
+
+        let oversized = vec![ChatMessage { role: "user".into(), content: "x".repeat(MAX_INPUT_CHARS + 1) }];
+        assert!(validate_chat_input("model-id", &oversized).is_err());
+    }
+
+    #[test]
+    fn chat_input_rejects_control_characters_in_model_id() {
+        let messages = vec![ChatMessage { role: "user".into(), content: "hello".into() }];
+        assert!(validate_chat_input("model\nmalicious", &messages).is_err());
     }
 
     #[test]
