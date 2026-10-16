@@ -387,7 +387,7 @@ export default function App() {
               <div className="result-foot"><ShieldCheck size={14} /> {answer ? collaborationSummary : "Execution status is shown transparently"}</div>
             </div>}
             <div className="value-strip"><div><span className="value-icon"><Workflow size={16} /></span><strong>Plan intelligently</strong><span>Break complex requests into useful steps.</span></div><div><span className="value-icon"><Eye size={16} /></span><strong>Review the work</strong><span>Check outputs instead of trusting consensus.</span></div><div><span className="value-icon"><ArrowUpRight size={16} /></span><strong>One clear result</strong><span>Get a coherent deliverable, not scattered chats.</span></div></div>
-            <div className="bottom-disclaimer">The current build is an early desktop foundation. Multi-agent orchestration is not implemented yet.</div>
+            <div className="bottom-disclaimer">The current build includes a basic draft-review-synthesis workflow. Advanced planning and multi-agent orchestration remain in development.</div>
           </section>
         )}
 
