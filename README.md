@@ -31,12 +31,12 @@ Email/password automation, cookie extraction, and unofficial session reuse are o
 - **Desktop shell:** Tauri 2 + React + TypeScript + Vite.
 - **Core logic:** TypeScript modules with provider-neutral contracts and deterministic tests.
 - **Secret storage:** OS credential vault through a reviewed native integration; secrets must not be stored in ordinary app settings or source control.
-- **Local persistence:** SQLite for projects, runs, provider metadata, and history; secrets are stored separately.
+- **Local persistence:** The current scaffold stores up to 100 completed-run summaries in local app storage; SQLite persistence for projects, task state, and detailed run events remains planned. Secrets are stored separately.
 - **Provider transport:** Native desktop-side requests so browser CORS limitations do not become a false provider failure.
 - **Live progress:** Typed local events first; use a hosted orchestration service only when a concrete requirement justifies it.
 - **Future mobile client:** Reuse portable TypeScript contracts where practical; implement platform-appropriate secure storage and permissions.
 
-The desktop shell, React UI, initial provider adapters, native credential-vault commands, task-graph engine, and CI workflow now exist on the working branch. Local SQLite persistence, official OAuth, a generalized planner, and a production-ready mobile client remain planned. Confirm dependency versions and platform compatibility during implementation.
+The desktop shell, React UI, initial provider adapters, native credential-vault commands, task-graph engine, basic draft-review-synthesis workflow, bounded local run-history storage, and CI workflow now exist on the working branch. Durable SQLite persistence for detailed run state, official OAuth, a generalized planner, and a production-ready mobile client remain planned. Confirm dependency versions and platform compatibility during implementation.
 
 ## Planned core screens
 
