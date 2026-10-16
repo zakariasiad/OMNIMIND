@@ -28,6 +28,7 @@ export interface TaskExecutionOptions {
   maxAttempts?: number;
   signal?: AbortSignal;
   onEvent?: (event: TaskEvent) => void;
+  shouldRetry?: (error: unknown, attempt: number) => boolean;
 }
 
 export interface TaskEvent {
@@ -135,7 +136,10 @@ export async function executeTaskGraph(
         return { taskId: task.id, ok: true, output, attempts: attempt };
       } catch (error) {
         lastError = error instanceof Error ? error.message : "Unknown task error.";
-        if (options.signal?.aborted || attempt === maxAttempts) break;
+        const retryable = options.shouldRetry
+          ? options.shouldRetry(error, attempt)
+          : /timeout|timed out|temporar|rate.?limit|\\b429\\b|\\b502\\b|\\b503\\b|\\b504\\b|network|connection|unavailable/i.test(lastError);
+        if (options.signal?.aborted || attempt === maxAttempts || !retryable) break;
       }
     }
     return { taskId: task.id, ok: false, error: lastError, attempts: records.get(task.id)?.attempts ?? 0 };
@@ -198,9 +202,10 @@ export async function executeTaskGraph(
   const required = taskRecords.filter((record) => record.task.required !== false);
   const allRequiredSucceeded = required.every((record) => record.status === "succeeded");
   const hasSuccess = taskRecords.some((record) => record.status === "succeeded");
+  const hasFailedTask = taskRecords.some((record) => ["failed", "blocked"].includes(record.status));
   const status = options.signal?.aborted
     ? "cancelled"
-    : allRequiredSucceeded
+    : allRequiredSucceeded && !hasFailedTask
       ? "succeeded"
       : hasSuccess
         ? "partial"
