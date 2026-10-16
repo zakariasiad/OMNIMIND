@@ -42,6 +42,7 @@ The desktop shell, React UI, initial provider adapters, native credential-vault 
 
 - **Workspace:** one prompt, execution mode, files/context, and final deliverable.
 - **Model Hub:** providers, configured models, connection status, capability metadata, and connection actions.
+- **MCP Hub:** inspect compatible HTTPS MCP endpoints and discover declared tools; execution and authenticated servers are not enabled yet.
 - **Run Monitor:** task progress, model assignments, retries, failures, and verification status.
 - **Settings:** concurrency, privacy, history, budgets, and diagnostics.
 
