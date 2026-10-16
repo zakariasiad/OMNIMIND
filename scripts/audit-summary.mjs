@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process";
 
-const command = process.platform === "win32" ? "npm.cmd" : "npm";
-const result = spawnSync(command, ["audit", "--json"], {
+const result = spawnSync("npm audit --json", {
   encoding: "utf8",
+  shell: true,
   windowsHide: true,
 });
 const raw = result.stdout ?? "";
