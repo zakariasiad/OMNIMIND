@@ -87,6 +87,17 @@ struct ConnectionTestResult {
 }
 
 #[tauri::command]
+fn list_saved_provider_ids() -> Vec<String> {
+    ["groq", "openrouter", "gemini"]
+        .iter()
+        .filter_map(|provider_id| {
+            let entry = Entry::new(SERVICE_NAME, provider_id).ok()?;
+            entry.get_password().ok().map(|_| (*provider_id).to_string())
+        })
+        .collect()
+}
+
+#[tauri::command]
 fn save_provider_key(provider_id: String, api_key: String) -> Result<(), String> {
     provider_config(&provider_id)?;
     let cleaned = api_key.trim();
