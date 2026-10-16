@@ -119,6 +119,29 @@ fn remove_provider_key(provider_id: String) -> Result<(), String> {
     }
 }
 
+const MAX_RESPONSE_BYTES: usize = 2 * 1024 * 1024;
+
+async fn read_limited_json(
+    mut response: reqwest::Response,
+    provider: &ProviderConfig,
+    description: &str,
+) -> Result<Value, String> {
+    if response.content_length().is_some_and(|size| size > MAX_RESPONSE_BYTES as u64) {
+        return Err(format!("{} returned an oversized {} response.", provider.label, description));
+    }
+    let mut body = Vec::new();
+    while let Some(chunk) = response.chunk().await.map_err(|_| {
+        format!("Could not read the {} response from {}.", description, provider.label)
+    })? {
+        if body.len().saturating_add(chunk.len()) > MAX_RESPONSE_BYTES {
+            return Err(format!("{} returned an oversized {} response.", provider.label, description));
+        }
+        body.extend_from_slice(&chunk);
+    }
+    serde_json::from_slice(&body)
+        .map_err(|_| format!("{} returned an unreadable {} response.", provider.label, description))
+}
+
 async fn fetch_models(provider_id: &str) -> Result<Vec<ModelInfo>, String> {
     let provider = provider_config(provider_id)?;
     let secret = load_secret(provider_id)?;
@@ -138,8 +161,7 @@ async fn fetch_models(provider_id: &str) -> Result<Vec<ModelInfo>, String> {
     if !response.status().is_success() {
         return Err(safe_status_error(response.status(), &provider));
     }
-    let payload: Value = response.json().await
-        .map_err(|_| format!("{} returned an unreadable model list.", provider.label))?;
+    let payload = read_limited_json(response, &provider, "model-list").await?;
     let entries = payload.get("data").and_then(Value::as_array)
         .ok_or_else(|| format!("{} returned an unexpected model-list response.", provider.label))?;
     let mut models: Vec<ModelInfo> = entries.iter()
@@ -249,8 +271,7 @@ async fn chat_completion(
     if !response.status().is_success() {
         return Err(safe_status_error(response.status(), &provider));
     }
-    let payload: Value = response.json().await
-        .map_err(|_| format!("{} returned an unreadable response.", provider.label))?;
+    let payload = read_limited_json(response, &provider, "completion").await?;
     let content = payload.pointer("/choices/0/message/content")
         .and_then(Value::as_str)
         .ok_or_else(|| format!("{} returned no text content for this request.", provider.label))?;
