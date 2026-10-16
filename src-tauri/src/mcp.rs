@@ -89,7 +89,7 @@ fn build_client(host: &str, addresses: &[SocketAddr]) -> Result<Client, String> 
         .map_err(|_| "Could not initialize the MCP network client.".to_string())
 }
 
-async fn read_mcp_payload(response: reqwest::Response) -> Result<(Value, Option<String>), String> {
+async fn read_mcp_payload(mut response: reqwest::Response) -> Result<(Value, Option<String>), String> {
     let session = response.headers().get("mcp-session-id")
         .and_then(|value| value.to_str().ok())
         .map(str::to_owned);
@@ -98,9 +98,12 @@ async fn read_mcp_payload(response: reqwest::Response) -> Result<(Value, Option<
     }
     let content_type = response.headers().get(header::CONTENT_TYPE)
         .and_then(|value| value.to_str().ok()).unwrap_or("").to_ascii_lowercase();
-    let bytes = response.bytes().await.map_err(|_| "Could not read the MCP server response.".to_string())?;
-    if bytes.len() > MAX_MCP_RESPONSE_BYTES {
-        return Err("The MCP server returned an oversized response.".into());
+    let mut bytes = Vec::new();
+    while let Some(chunk) = response.chunk().await.map_err(|_| "Could not read the MCP server response.".to_string())? {
+        if bytes.len().saturating_add(chunk.len()) > MAX_MCP_RESPONSE_BYTES {
+            return Err("The MCP server returned an oversized response.".into());
+        }
+        bytes.extend_from_slice(&chunk);
     }
     let body = std::str::from_utf8(&bytes).map_err(|_| "The MCP server returned invalid text.".to_string())?;
     let json_text = if content_type.contains("text/event-stream") {
