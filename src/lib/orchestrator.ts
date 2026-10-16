@@ -138,7 +138,7 @@ export async function executeTaskGraph(
         lastError = error instanceof Error ? error.message : "Unknown task error.";
         const retryable = options.shouldRetry
           ? options.shouldRetry(error, attempt)
-          : /timeout|timed out|temporar|rate.?limit|\\b429\\b|\\b502\\b|\\b503\\b|\\b504\\b|network|connection|unavailable/i.test(lastError);
+          : /timeout|timed out|temporar|rate.?limit|\b429\b|\b502\b|\b503\b|\b504\b|network|connection|unavailable/i.test(lastError);
         if (options.signal?.aborted || attempt === maxAttempts || !retryable) break;
       }
     }
