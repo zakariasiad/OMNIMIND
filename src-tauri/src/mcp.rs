@@ -208,6 +208,9 @@ pub async fn inspect_mcp_server(endpoint: String) -> Result<McpServerInspection,
     let result = initialized.get("result").ok_or_else(|| "The MCP server returned no initialization result.".to_string())?;
     let protocol_version = result.get("protocolVersion").and_then(Value::as_str)
         .ok_or_else(|| "The MCP server did not provide a protocol version.".to_string())?;
+    if protocol_version != "2025-11-25" {
+        return Err("This build supports MCP protocol version 2025-11-25 only. The server selected an incompatible version.".into());
+    }
     let server_info = result.get("serverInfo").ok_or_else(|| "The MCP server did not identify itself.".to_string())?;
     let server_name = server_info.get("name").and_then(Value::as_str).unwrap_or("Unknown MCP server");
     let server_version = server_info.get("version").and_then(Value::as_str).unwrap_or("Unknown version");
@@ -268,6 +271,7 @@ mod tests {
         assert!(validated_endpoint("http://example.com/mcp").is_err());
         assert!(validated_endpoint("https://user:pass@example.com/mcp").is_err());
         assert!(validated_endpoint("https://example.com/mcp?token=secret").is_err());
+        assert!(validated_endpoint("https://localhost/mcp").is_err());
     }
 
     #[test]
