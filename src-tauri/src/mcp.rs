@@ -202,6 +202,10 @@ pub async fn inspect_mcp_server(endpoint: String) -> Result<McpServerInspection,
         return Err("The MCP server returned invalid identification metadata.".into());
     }
 
+    send_notification(&client, &url, session.as_deref(), json!({
+        "jsonrpc": "2.0",
+        "method": "notifications/initialized"
+    })).await?;
     let (listed, next_session) = post_rpc(&client, &url, session.as_deref(), json!({
         "jsonrpc": "2.0",
         "id": 2,
