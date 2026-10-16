@@ -121,6 +121,30 @@ async fn read_mcp_payload(mut response: reqwest::Response) -> Result<(Value, Opt
     Ok((payload, session))
 }
 
+async fn send_notification(
+    client: &Client,
+    endpoint: &Url,
+    session: Option<&str>,
+    body: Value,
+) -> Result<(), String> {
+    let mut request = client.post(endpoint.clone())
+        .header(header::CONTENT_TYPE, "application/json")
+        .header(header::ACCEPT, "application/json, text/event-stream")
+        .json(&body);
+    if let Some(session_id) = session {
+        if session_id.len() > 256 || session_id.chars().any(char::is_control) {
+            return Err("The MCP server returned an invalid session identifier.".into());
+        }
+        request = request.header("mcp-session-id", session_id);
+    }
+    let response = request.send().await.map_err(|_| "Could not send MCP initialization notification.".to_string())?;
+    if response.status().is_success() || response.status() == StatusCode::ACCEPTED {
+        Ok(())
+    } else {
+        Err(format!("The MCP server rejected initialization notification (HTTP {}).", response.status().as_u16()))
+    }
+}
+
 async fn post_rpc(
     client: &Client,
     endpoint: &Url,
