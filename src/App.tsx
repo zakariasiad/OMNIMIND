@@ -10,6 +10,7 @@ import {
   type ProviderId, type ProviderState,
 } from "./lib/providers";
 import { chatCompletion, listSavedProviderIds, removeProviderKey, saveProviderKey, testProvider, type ChatMessage } from "./lib/desktop";
+import { executeTaskGraph, type TaskDefinition } from "./lib/orchestrator";
 
 type View = "workspace" | "models" | "runs" | "settings";
 type Notice = { kind: "success" | "error" | "info"; text: string };
@@ -27,6 +28,7 @@ export default function App() {
   const [prompt, setPrompt] = useState("");
   const [answer, setAnswer] = useState("");
   const [runStatus, setRunStatus] = useState("Ready for your first task");
+  const [collaborationSummary, setCollaborationSummary] = useState("Single-model request");
   const [history, setHistory] = useState<{ prompt: string; provider: string; model: string; time: string }[]>([]);
 
   const configured = useMemo(
@@ -200,26 +202,87 @@ export default function App() {
   async function runPrompt() {
     const text = prompt.trim();
     if (!text || busy) return;
-    const provider = states[selectedProvider];
-    const model = selectedModel || provider.enabledModels[0] || provider.models[0]?.id;
-    if (provider.status !== "connected" || !model) {
-      setNotice({ kind: "error", text: "Connect a provider and select a model in Model Hub before running a task." });
+    const primary = activeModels.find((model) => model.providerId === selectedProvider && model.id === selectedModel)
+      ?? activeModels.find((model) => model.providerId === selectedProvider)
+      ?? activeModels[0];
+    if (!primary) {
+      setNotice({ kind: "error", text: "Connect a provider and enable at least one model in Model Hub before running a task." });
       setView("models");
       return;
     }
+    const reviewer = activeModels.find((model) => model.providerId !== primary.providerId || model.id !== primary.id);
+    const collaborative = Boolean(reviewer);
     setBusy(true);
     setAnswer("");
-    setRunStatus("Sending request to the selected model…");
+    setCollaborationSummary(collaborative ? "Draft + independent review + synthesis" : "Single-model request");
+    setRunStatus(collaborative ? "Planning collaborative run…" : "Preparing model request…");
     setNotice(null);
-    const messages: ChatMessage[] = [
-      { role: "system", content: "You are an assistant in OMNIMIND AI. Give accurate, structured answers. State uncertainty instead of inventing facts." },
-      { role: "user", content: text },
-    ];
+
+    const tasks: TaskDefinition[] = collaborative
+      ? [
+          { id: "draft", title: "Create primary draft", input: { prompt: text }, dependsOn: [] },
+          { id: "review", title: "Independent model review", input: { prompt: text }, dependsOn: ["draft"] },
+          { id: "synthesis", title: "Synthesize final result", input: { prompt: text }, dependsOn: ["draft", "review"] },
+        ]
+      : [{ id: "draft", title: "Generate response", input: { prompt: text }, dependsOn: [] }];
+
     try {
-      const result = await chatCompletion(selectedProvider, model, messages);
-      setAnswer(result.content);
-      setRunStatus("Completed · single-model request");
-      setHistory((items) => [{ prompt: text, provider: PROVIDERS.find((p) => p.id === selectedProvider)?.name ?? selectedProvider, model: result.model, time: new Date().toLocaleTimeString() }, ...items]);
+      const result = await executeTaskGraph(tasks, async ({ task, dependencyResults }) => {
+        if (task.id === "draft") {
+          setRunStatus("Generating the primary draft…");
+          const messages: ChatMessage[] = [
+            { role: "system", content: "You are the primary executor in OMNIMIND AI. Answer the user's request directly, structure the result clearly, and state uncertainty instead of inventing facts." },
+            { role: "user", content: text },
+          ];
+          const response = await chatCompletion(primary.providerId, primary.id, messages);
+          return response.content;
+        }
+        if (task.id === "review" && reviewer) {
+          setRunStatus("A second model is reviewing the draft…");
+          const draft = String(dependencyResults.draft ?? "");
+          const messages: ChatMessage[] = [
+            { role: "system", content: "You are an independent reviewer in OMNIMIND AI. Check the draft against the user's request. Identify factual uncertainty, omissions, contradictions, and concrete improvements. Do not rewrite the entire answer unless necessary." },
+            { role: "user", content: `USER REQUEST:\n${text}\n\nDRAFT TO REVIEW:\n${draft}\n\nReturn concise, actionable review notes. If you cannot verify a claim, say so.` },
+          ];
+          const response = await chatCompletion(reviewer.providerId, reviewer.id, messages);
+          return response.content;
+        }
+        if (task.id === "synthesis" && reviewer) {
+          setRunStatus("Synthesizing one coherent result…");
+          const draft = String(dependencyResults.draft ?? "");
+          const review = String(dependencyResults.review ?? "");
+          const messages: ChatMessage[] = [
+            { role: "system", content: "You are the final synthesizer in OMNIMIND AI. Produce one coherent deliverable for the user. Incorporate useful reviewer findings, reject unsupported criticism, preserve important details, and clearly label remaining uncertainty. Do not claim independent verification unless evidence or tests were actually performed." },
+            { role: "user", content: `USER REQUEST:\n${text}\n\nPRIMARY DRAFT:\n${draft}\n\nINDEPENDENT REVIEW:\n${review}\n\nCreate the final answer now. Do not mention internal orchestration unless it helps explain a limitation.` },
+          ];
+          const response = await chatCompletion(primary.providerId, primary.id, messages);
+          return response.content;
+        }
+        throw new Error("The task could not be assigned to an eligible model.");
+      }, {
+        concurrency: 2,
+        maxAttempts: 2,
+        onEvent: (event) => {
+          if (event.type === "task_retrying") setRunStatus("Retrying " + event.title.toLowerCase() + "…");
+          if (event.type === "task_failed") setRunStatus("Failed: " + event.title);
+        },
+      });
+
+      const finalTask = result.tasks.find((task) => task.task.id === "synthesis")
+        ?? result.tasks.find((task) => task.task.id === "draft");
+      if (!finalTask || finalTask.status !== "succeeded") {
+        throw new Error(finalTask?.error ?? "The run did not produce a verified final output.");
+      }
+      const finalText = String(finalTask.output ?? "");
+      setAnswer(finalText);
+      setRunStatus(result.status === "succeeded" ? "Completed" : "Completed with limitations");
+      const usedModels = reviewer ? primary.providerName + " + " + reviewer.providerName : primary.providerName;
+      setHistory((items) => [{
+        prompt: text,
+        provider: usedModels,
+        model: reviewer ? primary.id + " + " + reviewer.id : primary.id,
+        time: new Date().toLocaleTimeString(),
+      }, ...items]);
       setPrompt("");
     } catch (error) {
       setRunStatus("Run failed");
@@ -304,7 +367,7 @@ export default function App() {
             {(busy || answer || runStatus !== "Ready for your first task") && <div className="result-card">
               <div className="result-head"><div><span className="result-icon"><Activity size={16} /></span><strong>Run output</strong></div><span className={`run-state ${busy ? "running" : answer ? "done" : "failed"}`}>{busy && <LoaderCircle size={12} className="spin" />}{runStatus}</span></div>
               {busy ? <div className="loading-line"><span /><span /><span /></div> : answer ? <pre className="answer-text">{answer}</pre> : <p className="error-copy">No result was produced. Review the error message and try again.</p>}
-              <div className="result-foot"><ShieldCheck size={14} /> {answer ? "Single-model response · not yet independently reviewed" : "Execution status is shown transparently"}</div>
+              <div className="result-foot"><ShieldCheck size={14} /> {answer ? collaborationSummary : "Execution status is shown transparently"}</div>
             </div>}
             <div className="value-strip"><div><span className="value-icon"><Workflow size={16} /></span><strong>Plan intelligently</strong><span>Break complex requests into useful steps.</span></div><div><span className="value-icon"><Eye size={16} /></span><strong>Review the work</strong><span>Check outputs instead of trusting consensus.</span></div><div><span className="value-icon"><ArrowUpRight size={16} /></span><strong>One clear result</strong><span>Get a coherent deliverable, not scattered chats.</span></div></div>
             <div className="bottom-disclaimer">The current build is an early desktop foundation. Multi-agent orchestration is not implemented yet.</div>
