@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::time::Duration;
 
+mod mcp;
+
 const SERVICE_NAME: &str = "OMNIMIND_AI_PROVIDER";
 
 #[derive(Clone, Copy)]
@@ -290,7 +292,8 @@ pub fn run() {
             save_provider_key,
             remove_provider_key,
             test_provider_connection,
-            chat_completion
+            chat_completion,
+            mcp::inspect_mcp_server
         ])
         .run(tauri::generate_context!())
         .expect("error while running OMNIMIND AI");
