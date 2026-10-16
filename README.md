@@ -1,62 +1,65 @@
 # OMNIMIND AI
 
-**A coordinated multi-model AI workspace that turns one request into one verified result.**
+**One request. Multiple AI models. One coherent result.**
 
-OMNIMIND AI is a general-purpose platform for orchestrating multiple AI models and specialized agents. It plans work, delegates tasks, shares relevant context, runs independent tasks concurrently, validates outputs, retries recoverable failures, and synthesizes the work into one coherent deliverable.
+OMNIMIND AI is a desktop-first, general-purpose AI workspace that coordinates compatible AI models and specialized agent roles. It plans work, delegates tasks, shares scoped context, reviews outputs, handles recoverable failures, and synthesizes one deliverable with clear verification status.
 
-> **Project status:** Foundation and architecture planning. The repository is being prepared for implementation; features described in the specification are goals until implemented and tested.
+> **Project status:** Product and architecture foundation. The desktop application, provider connections, orchestration engine, and installers are not yet implemented or verified.
 
-## Vision
+## Product direction
 
-Users should describe the outcome they want—not choose models, manually coordinate agents, or reconcile conflicting answers. OMNIMIND AI handles the workflow and reports what was completed, what was validated, and what remains uncertain.
+- **Desktop first:** Windows is the initial target, with a straightforward installer and optional command-line setup and diagnostics.
+- **Mobile later:** Keep orchestration contracts and provider abstractions portable so a mobile companion can be built without redesigning the core.
+- **Model-agnostic:** Support multiple providers through a normalized adapter interface.
+- **Free-cloud-first:** Prioritize legitimately available free tiers while allowing users to add paid providers and their own credentials.
+- **User-controlled connections:** Add, test, enable, disable, refresh, and remove provider connections from a Model Hub.
+- **Secure credentials:** Prefer OS-backed secure storage; never ask users to paste account passwords or session cookies into OMNIMIND.
+- **One coherent deliverable:** A bounded orchestration workflow plans tasks, runs independent work concurrently, reviews results, and synthesizes one answer.
+- **Honest status:** Show completed, failed, skipped, and unverified work; never claim unlimited free inference or guaranteed correctness.
 
-## Core principles
+## Connection methods
 
-- **One request, one coherent deliverable.**
-- **Model-agnostic orchestration:** select models by task fit, availability, quality, latency, and cost.
-- **Free-cloud-first:** prefer available free-tier providers while supporting future paid providers.
-- **Resilient execution:** persist task state, retry safely, and fall back when compatible providers fail.
-- **Evidence-aware validation:** do not treat model consensus as proof of correctness.
-- **Human control:** require approval for sensitive, irreversible, or externally impactful actions.
-- **Security by design:** isolate project data, protect credentials, and apply least-privilege tool access.
+1. **API key** for providers that officially expose an API.
+2. **Official OAuth** only where the provider supports an approved OAuth integration.
+3. **Compatible API endpoints and MCP connectors** after validation and explicit user authorization.
+4. **Future local-model connectors** as an optional extension; local models are not required for the first release.
 
-## Planned capabilities
+Email/password automation, cookie extraction, and unofficial session reuse are out of scope. A website subscription does not automatically grant API access.
 
-- Project and run management
-- Dynamic planning and dependency-aware task graphs
-- Specialized logical agent roles
-- Parallel execution of independent tasks
-- Shared, permission-scoped context and artifacts
-- Output review, test execution, and bounded retries
-- Unified final-answer synthesis
-- Live progress events and execution history
-- Provider health, quotas, budgets, and fallback policies
-- Tool and MCP integrations with explicit permissions
+## Proposed initial stack
 
-## Architecture direction
+- **Desktop shell:** Tauri 2 + React + TypeScript + Vite.
+- **Core logic:** TypeScript modules with provider-neutral contracts and deterministic tests.
+- **Secret storage:** OS credential vault through a reviewed native integration; secrets must not be stored in ordinary app settings or source control.
+- **Local persistence:** SQLite for projects, runs, provider metadata, and history; secrets are stored separately.
+- **Provider transport:** Native desktop-side requests so browser CORS limitations do not become a false provider failure.
+- **Live progress:** Typed local events first; use a hosted orchestration service only when a concrete requirement justifies it.
+- **Future mobile client:** Reuse portable TypeScript contracts where practical; implement platform-appropriate secure storage and permissions.
 
-- **Web UI:** Next.js + TypeScript
-- **Application API and orchestration:** Python + FastAPI
-- **Model access:** reuse and validate the existing OpenFallback AI Gateway before extending it
-- **Persistence:** PostgreSQL; Supabase is an option if it fits the verified existing environment
-- **Live updates:** Server-Sent Events initially, with WebSockets if product needs justify them
-- **Execution:** durable task state and bounded asynchronous workers
+These are proposed implementation choices, not claims that these components exist yet. Confirm dependency versions and platform compatibility during implementation.
 
-These are proposed choices, not claims that the components have already been implemented or deployed.
+## Planned core screens
+
+- **Workspace:** one prompt, execution mode, files/context, and final deliverable.
+- **Model Hub:** providers, configured models, connection status, capability metadata, and connection actions.
+- **Run Monitor:** task progress, model assignments, retries, failures, and verification status.
+- **Settings:** concurrency, privacy, history, budgets, and diagnostics.
 
 ## Documentation
 
 - [Technical specification](docs/TECHNICAL_SPEC.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Implementation roadmap](docs/ROADMAP.md)
+- [Desktop product specification](docs/DESKTOP_PRODUCT_SPEC.md)
+- [Provider connections and credential security](docs/PROVIDER_CONNECTIONS.md)
 
-## Important gateway note
+## Existing gateway
 
-OpenFallback AI Gateway is intended to be the model-access layer, not a competing second gateway. Its source, configuration, provider adapters, deployment settings, and health must be inspected and tested before relying on it. Do not assume a provider is available, free, or operational without runtime verification.
+An existing Vercel project named `openfallback-ai-gateway` was found, but its latest inspected deployment failed with `STATIC_BUILD_NO_OUT_DIR`. The deployment points to the `Framework-MCPs` repository, where no clear gateway source directory was found in the inspected repository tree. The gateway must not be treated as available until its actual source, build configuration, API contract, provider adapters, and health are located and verified.
 
 ## Development status
 
-The repository began with an initial README and license. The docs/foundation-specification branch adds the English-language product foundation, technical specification, architecture overview, and phased implementation roadmap. Application features, provider integrations, tests, and deployments still need to be implemented and verified.
+The current work establishes product requirements and implementation plans on the `docs/foundation-specification` branch. The app, installer, provider connections, orchestration, automated tests, and deployment remain implementation work.
 
 ## License
 
