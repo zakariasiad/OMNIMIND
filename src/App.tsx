@@ -23,6 +23,7 @@ export default function App() {
   const [keyDraft, setKeyDraft] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [addingProvider, setAddingProvider] = useState<ProviderId | null>(null);
+  const [providerPickerOpen, setProviderPickerOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [prompt, setPrompt] = useState("");
@@ -377,7 +378,7 @@ export default function App() {
 
         {view === "models" && (
           <section className="content-page">
-            <div className="page-heading"><div><span className="eyebrow">CONNECTIONS & CAPABILITIES</span><h1>Model Hub</h1><p>Connect your providers, choose available models, and control which ones OMNIMIND may use.</p></div><button className="primary-button" onClick={() => { setAddingProvider("groq"); setKeyDraft(""); }}><Plus size={16} /> Add provider</button></div>
+            <div className="page-heading"><div><span className="eyebrow">CONNECTIONS & CAPABILITIES</span><h1>Model Hub</h1><p>Connect your providers, choose available models, and control which ones OMNIMIND may use.</p></div><button className="primary-button" onClick={() => setProviderPickerOpen(true)}><Plus size={16} /> Add provider</button></div>
             <div className="hub-summary"><div><span>PROVIDERS</span><strong>{configured} <small>/ {PROVIDERS.length}</small></strong></div><div><span>AVAILABLE MODELS</span><strong>{Object.values(states).reduce((sum, state) => sum + state.models.length, 0)}</strong></div><div><span>ENABLED FOR ROUTING</span><strong>{activeModels.length}</strong></div></div>
             <div className="provider-list">
               {PROVIDERS.map((provider) => {
@@ -411,6 +412,18 @@ export default function App() {
           </section>
         )}
       </main>
+
+      {providerPickerOpen && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setProviderPickerOpen(false); }}>
+        <section className="connect-modal provider-picker-modal" role="dialog" aria-modal="true" aria-labelledby="provider-picker-title">
+          <div className="modal-top"><div className="modal-icon"><Plus size={21} /></div><button className="icon-button" onClick={() => setProviderPickerOpen(false)} aria-label="Close"><X size={18} /></button></div>
+          <span className="eyebrow">MODEL HUB</span><h2 id="provider-picker-title">Choose a provider</h2><p className="modal-copy">Select a supported provider to connect with an API key. You can add more providers later.</p>
+          <div className="provider-picker-list">{PROVIDERS.map((provider) => <button className="provider-picker-option" key={provider.id} onClick={() => { setAddingProvider(provider.id); setKeyDraft(""); setNotice(null); setProviderPickerOpen(false); }}>
+            <span className={`provider-logo ${provider.id}`}>{provider.id === "groq" ? <ZapIcon /> : provider.id === "openrouter" ? <Workflow size={22} /> : <Sparkles size={22} />}</span>
+            <span className="provider-picker-copy"><strong>{provider.name}</strong><span>{provider.description}</span></span><ArrowUpRight size={16} />
+          </button>)}</div>
+          <div className="modal-actions"><button className="secondary-button" onClick={() => setProviderPickerOpen(false)}>Cancel</button></div>
+        </section>
+      </div>}
 
       {addingProvider && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) setAddingProvider(null); }}>
         <section className="connect-modal" role="dialog" aria-modal="true" aria-labelledby="connect-title">
