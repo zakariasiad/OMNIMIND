@@ -1,90 +1,90 @@
 # OMNIMIND AI — Implementation Roadmap
 
-This roadmap describes intended work, not completed features. Each phase must be verified before moving to the next.
+This roadmap describes intended work, not completed features. Verify each phase before moving forward. Keep all repository documentation, code comments, and product-facing UI text in English.
 
-## Phase 0 — Repository and gateway audit
+## Phase 0 — Product and dependency audit
 
-**Tasks**
-- [ ] Inspect the current OMNIMIND repository, branch settings, and existing files.
-- [ ] Locate the actual OpenFallback AI Gateway source and identify ownership boundaries.
-- [ ] Inspect package/build configuration, deployment root, runtime, and environment variable names.
-- [ ] Reproduce and diagnose the known deployment/build failure from logs.
-- [ ] Identify existing database, authentication, and storage resources before creating anything.
-- [ ] Record baseline health and API tests.
+- [x] Inspect OMNIMIND default branch and foundation documentation.
+- [x] Confirm the current OMNIMIND branch is documentation-only.
+- [x] Inspect the existing OpenFallback Vercel project and latest deployment.
+- [x] Record the current deployment error: `STATIC_BUILD_NO_OUT_DIR`.
+- [x] Inspect the Framework-MCPs repository tree; no obvious OpenFallback source directory was found.
+- [ ] Locate the actual gateway source and identify ownership/build boundaries.
+- [ ] Decide whether the gateway can be safely repaired or direct provider adapters are the better desktop MVP path.
+- [ ] Confirm secure-storage implementation and first provider API contracts.
 
-**Exit criteria:** An evidence-based audit report and a safe repair plan.
+**Exit criteria:** Evidence-based architecture choice, no assumed healthy gateway, no duplicated cloud resources.
 
-## Phase 1 — Stabilize the model gateway
+## Phase 1 — Desktop application foundation
 
-- [ ] Correct the build/deployment configuration based on the actual application type.
-- [ ] Add or verify health and model-discovery endpoints.
-- [ ] Verify provider adapters and required capabilities.
-- [ ] Normalize provider errors and retry metadata.
-- [ ] Implement bounded, compatibility-aware fallback.
-- [ ] Add automated unit and integration tests.
-- [ ] Verify deployment and API behavior after promotion.
+- [ ] Scaffold Tauri 2 + React + TypeScript + Vite with a reproducible Windows build.
+- [ ] Add navigation, app settings, first-run setup, and a skip-for-now path.
+- [ ] Add lint, typecheck, unit test, and build scripts.
+- [ ] Define portable typed contracts for provider connections, models, tasks, runs, and events.
+- [ ] Validate the selected OS credential vault integration before storing real credentials.
+- [ ] Add local SQLite migrations and a safe reset/export policy.
 
-**Exit criteria:** Gateway behavior is reproducible and documented; deployment is verified rather than assumed.
+**Exit criteria:** The app opens on Windows, passes automated checks, and stores only non-secret settings in ordinary local storage.
 
-## Phase 2 — Orchestration core
+## Phase 2 — Model Hub and secure connections
 
-- [ ] Define typed run and task contracts.
-- [ ] Implement task state transitions and DAG validation.
-- [ ] Implement dependency-aware scheduling and bounded concurrency.
-- [ ] Persist run/task state and append execution events.
-- [ ] Implement cancellation, timeouts, and resource budgets.
-- [ ] Implement safe retries and resume behavior.
+- [ ] Add provider registry and explicit capability metadata.
+- [ ] Implement API-key entry with secret handling through a privileged command.
+- [ ] Implement connection test, safe errors, and model discovery or curated model lists.
+- [ ] Add connected/degraded/auth-required/disabled/error states.
+- [ ] Implement enable, disable, refresh, edit, and remove flows.
+- [ ] Add official OAuth only where provider support is verified.
+- [ ] Add tests proving secrets are not logged or written to SQLite.
+- [ ] Implement at least one provider adapter, then add another based on verified official docs.
 
-**Exit criteria:** An API-level workflow executes multiple dependent tasks and survives a controlled restart without false completion.
+**Exit criteria:** A user can add and test a provider, select allowed models, disable it, and remove its credential safely.
 
-## Phase 3 — Multi-agent collaboration
+## Phase 3 — First useful AI workspace
 
+- [ ] Build a unified request workspace.
+- [ ] Implement a single-provider execution path first.
+- [ ] Persist runs, tasks, artifacts, and progress events.
+- [ ] Show model attribution and request failures.
+- [ ] Add cancellation, timeouts, and bounded output sizes.
+
+**Exit criteria:** A user can submit a task, receive a result, inspect status, and resume history after restart.
+
+## Phase 4 — Multi-model orchestration
+
+- [ ] Implement planner output schema and DAG validation.
+- [ ] Add dependency-aware scheduler and bounded parallelism.
 - [ ] Implement planner, executor, reviewer, tester, and synthesizer roles.
-- [ ] Define versioned role instructions and structured output contracts.
-- [ ] Pass artifacts by reference rather than duplicating full context unnecessarily.
-- [ ] Add explicit review criteria and deterministic tests where possible.
-- [ ] Add conflict handling and bounded re-planning.
-- [ ] Track model usage, latency, failures, and fallback decisions.
+- [ ] Add capability-aware routing and compatible fallback.
+- [ ] Add deterministic checks, bounded retries, and conflict handling.
+- [ ] Report incomplete or unverified outputs honestly.
 
-**Exit criteria:** A single request uses multiple model calls for distinct tasks and returns one validated, coherent deliverable.
+**Exit criteria:** A request uses multiple distinct model calls for separate tasks and returns one coherent result with traceable progress.
 
-## Phase 4 — User experience
+## Phase 5 — UX, diagnostics, and beta hardening
 
-- [ ] Build project and run views.
-- [ ] Build a task graph/progress view.
-- [ ] Stream run events to the browser.
-- [ ] Show failures, retries, approvals, and verification status.
-- [ ] Display and download artifacts.
-- [ ] Add cancellation and budget controls.
+- [ ] Finish Model Hub, Workspace, Run Monitor, and Settings screens.
+- [ ] Add redacted diagnostic export and local history management.
+- [ ] Test app interruption, credential-vault errors, rate limits, and unavailable providers.
+- [ ] Run dependency and security checks.
+- [ ] Package Windows installer and test clean install, update, and uninstall.
+- [ ] Document limitations, data flows, and provider terms.
 
-**Exit criteria:** A user can create, monitor, cancel, and inspect a run without accessing internal tools.
+**Exit criteria:** Controlled beta package with reproducible build/test evidence and no known critical credential-handling defect.
 
-## Phase 5 — Security and controlled beta
+## Phase 6 — Mobile and optional hosted services
 
-- [ ] Verify project and artifact authorization boundaries.
-- [ ] Add rate limits and abuse controls.
-- [ ] Add prompt-injection defenses around tool and retrieved content.
-- [ ] Require approval for sensitive external side effects.
-- [ ] Run integration and end-to-end acceptance tests.
-- [ ] Establish latency, quality, and usage baselines.
-- [ ] Document known limitations and operational procedures.
+- [ ] Gather mobile use cases and decide which actions need remote access.
+- [ ] Define identity, encryption, sync, retention, and conflict rules before cloud sync.
+- [ ] Build a mobile companion with platform-native secure storage.
+- [ ] Add hosted orchestration only if desktop/mobile collaboration requires it.
+- [ ] Reassess queues, observability, and scaling based on measured usage.
 
-**Exit criteria:** All MVP acceptance criteria in the technical specification pass in a controlled environment.
-
-## Phase 6 — Scale and integrations
-
-- [ ] Add MCP integrations with per-tool permissions.
-- [ ] Add additional providers based on verified compatibility and policy.
-- [ ] Introduce a durable queue/workflow engine if measured workload requires it.
-- [ ] Improve routing using observed quality, latency, availability, and usage.
-- [ ] Add retention controls and operational dashboards.
-- [ ] Perform load, recovery, and security testing.
-
-**Exit criteria:** Scale changes are supported by measurements and regression tests.
+**Exit criteria:** Mobile support does not weaken local credential isolation or silently transmit private data.
 
 ## Release discipline
 
-- Never report a feature as implemented because it appears in documentation.
-- Never report deployment success without checking the actual deployment result.
-- Do not create duplicate gateways or cloud resources before auditing what already exists.
-- Keep all project documentation, UI copy, code comments intended for users, and product-facing messages in English.
+- Never report a documented feature as implemented.
+- Never report a connection as healthy based only on saved credentials.
+- Never report deployment success without checking the actual deployment.
+- Never create duplicate gateways or cloud resources before auditing existing assets.
+- Ask for approval before paid resources, irreversible actions, or changing public production behavior.
