@@ -2,18 +2,18 @@
 
 ## Current status
 
-OMNIMIND does not yet ship a runtime MCP client or connect external MCP servers from the desktop UI. The GitHub MCP connector is available to the development workflow for repository inspection, code changes, and CI verification; that is not the same as an MCP server connection inside OMNIMIND.
+OMNIMIND now has an initial native remote MCP inspection path in the desktop branch: the MCP Hub accepts an HTTPS endpoint, performs a bounded legacy-protocol initialization handshake, and lists declared tools. The native layer rejects non-HTTPS endpoints, blocks resolved private/local addresses, pins the resolved addresses for the request, disables redirects, applies timeouts and response/tool limits, and stores only endpoint/tool metadata locally.
 
-Do not display MCP as implemented until a runtime client, configuration UX, permissions, and end-to-end tests exist.
+This is a limited discovery slice, not beta-ready MCP support. It does not execute tools, support server OAuth, start local stdio processes, or yet enforce per-tool permissions. The GitHub MCP connector used for repository work is separate from this runtime connection.
 
 ## Recommended integration order
 
-1. **MCP client foundation (desktop-local)** — implement the official Model Context Protocol client SDK behind a narrow TypeScript service boundary. Pin a reviewed SDK version and support one transport at a time.
-2. **Local stdio servers** — start only user-configured executables, with explicit executable path and argument list. Never run shell command strings or silently download/install a server.
-3. **Streamable HTTP servers** — support only after origin/URL validation, HTTPS by default, explicit trust confirmation, authentication handling, and SSRF/private-network protections are tested.
-4. **Tools and resources registry** — list server identity, tool/resource names, schemas, required permissions, and connection health. Treat all returned content as untrusted input.
-5. **Human approval and audit trail** — ask before destructive, external, financial, publishing, file-write, or other consequential tool actions; display arguments and target, and record redacted outcomes locally.
-6. **Optional integrations** — add specific connectors only when there is a validated user workflow. Avoid requiring cloud infrastructure for the local-first MVP.
+1. **Remote HTTP client hardening** — complete protocol compatibility tests, validate response IDs and session lifecycle, and pin the SDK/protocol strategy. Current native implementation targets legacy Streamable HTTP-compatible servers.
+2. **Server registry and lifecycle** — add persistent enable/disable, reconnect, health, and safe removal behavior.
+3. **Tool execution gate** — implement host-side per-tool permissions, JSON Schema validation, explicit user confirmation for consequential actions, and redacted audit records before any tool can run.
+4. **Local stdio servers** — only start user-configured executables with explicit argument arrays, environment allowlists, process timeouts, and no shell-string execution.
+5. **Resources and prompts** — add bounded discovery/read flows, with returned content treated as untrusted data.
+6. **Authentication and optional integrations** — add supported OAuth or GitHub/filesystem/research integrations only after secure credential storage and permissions are complete.
 
 ## Security requirements
 
@@ -41,13 +41,13 @@ These are candidates, not connected integrations:
 
 ## Acceptance criteria before calling MCP support beta-ready
 
-- [ ] Official SDK and transport versions pinned and reviewed.
-- [ ] Add, test, disable, reconnect, and remove server flows work.
-- [ ] Server/tool metadata is validated and displayed safely.
+- [ ] Official SDK/protocol compatibility strategy is pinned and reviewed; initial native legacy HTTP discovery exists.
+- [ ] Add, test, disable, reconnect, and remove server flows are complete; add and inspect exist, lifecycle controls remain partial.
+- [x] Server/tool metadata is bounded and displayed as untrusted data.
 - [ ] User consent and per-tool authorization are enforced in native host code.
 - [ ] Local stdio process lifecycle, timeouts, cancellation, and shutdown are tested.
-- [ ] HTTP URL validation and private-network/SSRF defenses have automated tests.
+- [x] HTTP URL validation, private-network blocking, DNS address pinning, redirect blocking, timeouts, and response-size limits are implemented; expand automated coverage and perform integration tests.
 - [ ] Secrets and sensitive tool output are redacted from logs and exports.
 - [ ] Prompt-injection tests cover tool descriptions, resources, and returned content.
 - [ ] No server is auto-installed, auto-trusted, or auto-enabled.
-- [ ] Documentation accurately distinguishes connected developer MCPs from runtime MCP support.
+- [x] Documentation distinguishes developer workflow MCP connectors from the limited runtime discovery implementation.
