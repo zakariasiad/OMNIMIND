@@ -62,7 +62,22 @@ This roadmap describes intended work, not completed features. Verify each phase 
 
 **Exit criteria:** A request uses multiple distinct model calls for separate tasks and returns one coherent result with traceable progress.
 
-## Phase 5 — UX, diagnostics, and beta hardening
+## Phase 5 — MCP client and tool security
+
+- [x] Document the difference between developer-workflow MCP connectors and runtime MCP support.
+- [x] Define the initial integration order, trust boundaries, security requirements, and acceptance criteria in [MCP Integrations](MCP_INTEGRATIONS.md).
+- [ ] Select and pin the official MCP TypeScript SDK and supported protocol version.
+- [ ] Implement a narrow MCP client service and lifecycle management.
+- [ ] Add local stdio server configuration with executable/argument validation and process limits.
+- [ ] Add Streamable HTTP support only after URL validation and SSRF defenses are tested.
+- [ ] Build a server registry with health, tools/resources discovery, enable/disable, reconnect, and remove actions.
+- [ ] Add explicit per-tool permissions, user approval for consequential actions, and redacted audit events.
+- [ ] Add automated tests for timeouts, cancellation, malicious server output, prompt injection, path traversal, and private-network access.
+- [ ] Add GitHub, filesystem, or research integrations only after the runtime client and permission system are ready; do not auto-install or auto-trust servers.
+
+**Exit criteria:** User-configured MCP servers work end-to-end under explicit, testable permissions; untrusted server output cannot authorize actions or override application policy.
+
+## Phase 6 — UX, diagnostics, and beta hardening
 
 - [x] Add initial Model Hub, Workspace, Run History, and Settings screens.
 - [ ] Add redacted diagnostic export and persistent local history management.
@@ -73,7 +88,7 @@ This roadmap describes intended work, not completed features. Verify each phase 
 
 **Exit criteria:** Controlled beta package with reproducible build/test evidence and no known critical credential-handling defect.
 
-## Phase 6 — Mobile and optional hosted services
+## Phase 7 — Mobile and optional hosted services
 
 - [ ] Gather mobile use cases and decide which actions need remote access.
 - [ ] Define identity, encryption, sync, retention, and conflict rules before cloud sync.
