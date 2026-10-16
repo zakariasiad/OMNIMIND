@@ -17,57 +17,59 @@ This roadmap describes intended work, not completed features. Verify each phase 
 
 ## Phase 1 — Desktop application foundation
 
-- [ ] Scaffold Tauri 2 + React + TypeScript + Vite with a reproducible Windows build.
-- [ ] Add navigation, app settings, first-run setup, and a skip-for-now path.
-- [ ] Add lint, typecheck, unit test, and build scripts.
-- [ ] Define portable typed contracts for provider connections, models, tasks, runs, and events.
-- [ ] Validate the selected OS credential vault integration before storing real credentials.
+- [x] Scaffold Tauri 2 + React + TypeScript + Vite and configure a Windows installer workflow.
+- [x] Add primary navigation for Workspace, Model Hub, Run History, and Settings.
+- [x] Add typecheck, unit-test, and frontend build scripts; a recent frontend CI run passed.
+- [x] Define initial typed contracts for provider connections, models, tasks, and task events.
+- [x] Add Windows-native credential-vault commands and fail closed if the vault cannot store a secret.
 - [ ] Add local SQLite migrations and a safe reset/export policy.
+- [ ] Verify the Windows installer job and test clean install/uninstall.
 
 **Exit criteria:** The app opens on Windows, passes automated checks, and stores only non-secret settings in ordinary local storage.
 
 ## Phase 2 — Model Hub and secure connections
 
-- [ ] Add provider registry and explicit capability metadata.
-- [ ] Implement API-key entry with secret handling through a privileged command.
-- [ ] Implement connection test, safe errors, and model discovery or curated model lists.
-- [ ] Add connected/degraded/auth-required/disabled/error states.
-- [ ] Implement enable, disable, refresh, edit, and remove flows.
-- [ ] Add official OAuth only where provider support is verified.
-- [ ] Add tests proving secrets are not logged or written to SQLite.
-- [ ] Implement at least one provider adapter, then add another based on verified official docs.
+- [x] Add an initial provider registry for Groq, OpenRouter, and Google Gemini's compatible API.
+- [x] Implement API-key entry through a privileged command and OS credential vault.
+- [x] Implement connection testing and model-list discovery with safe error messages.
+- [x] Add connected/disabled/error and related UI states.
+- [x] Implement enable/disable, refresh, and remove flows.
+- [ ] Add official OAuth only after provider support is verified.
+- [ ] Expand automated tests for secret lifecycle, provider errors, and redaction.
+- [ ] Review and verify each initial provider's current official API contract and free-tier limitations.
 
 **Exit criteria:** A user can add and test a provider, select allowed models, disable it, and remove its credential safely.
 
 ## Phase 3 — First useful AI workspace
 
-- [ ] Build a unified request workspace.
-- [ ] Implement a single-provider execution path first.
-- [ ] Persist runs, tasks, artifacts, and progress events.
-- [ ] Show model attribution and request failures.
-- [ ] Add cancellation, timeouts, and bounded output sizes.
+- [x] Build a unified request workspace and single-provider execution path.
+- [x] Show basic model attribution, run status, and request failures.
+- [ ] Persist runs, tasks, artifacts, and progress events across restarts.
+- [x] Add request timeouts, input-size validation, bounded retry behavior, and a default output-token limit.
+- [ ] Add user-configurable per-run budgets and cancellation controls.
 
 **Exit criteria:** A user can submit a task, receive a result, inspect status, and resume history after restart.
 
 ## Phase 4 — Multi-model orchestration
 
-- [ ] Implement planner output schema and DAG validation.
-- [ ] Add dependency-aware scheduler and bounded parallelism.
-- [ ] Implement planner, executor, reviewer, tester, and synthesizer roles.
-- [ ] Add capability-aware routing and compatible fallback.
-- [ ] Add deterministic checks, bounded retries, and conflict handling.
-- [ ] Report incomplete or unverified outputs honestly.
+- [x] Add task-graph validation and a dependency-aware scheduler with bounded parallelism.
+- [x] Add a basic executor → independent review → synthesis workflow when a second model is available.
+- [ ] Implement a structured planner, tester role, and general task decomposition.
+- [ ] Add capability-aware routing and compatible provider fallback.
+- [x] Add bounded retries and dependency-failure handling in the task engine.
+- [ ] Add persisted run traces, richer deterministic checks, and conflict handling.
+- [x] Report run completion limitations rather than claiming general autonomous planning.
 
 **Exit criteria:** A request uses multiple distinct model calls for separate tasks and returns one coherent result with traceable progress.
 
 ## Phase 5 — UX, diagnostics, and beta hardening
 
-- [ ] Finish Model Hub, Workspace, Run Monitor, and Settings screens.
-- [ ] Add redacted diagnostic export and local history management.
+- [x] Add initial Model Hub, Workspace, Run History, and Settings screens.
+- [ ] Add redacted diagnostic export and persistent local history management.
 - [ ] Test app interruption, credential-vault errors, rate limits, and unavailable providers.
-- [ ] Run dependency and security checks.
-- [ ] Package Windows installer and test clean install, update, and uninstall.
-- [ ] Document limitations, data flows, and provider terms.
+- [ ] Run and review dependency/security checks and resolve relevant findings.
+- [ ] Confirm Windows installer build and test clean install, update, and uninstall.
+- [x] Document known limitations, credential boundaries, and intended provider connection policy.
 
 **Exit criteria:** Controlled beta package with reproducible build/test evidence and no known critical credential-handling defect.
 
