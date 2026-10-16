@@ -39,6 +39,7 @@ export default function App() {
         Object.entries(states).map(([id, state]) => [id, {
           models: state.models,
           enabledModels: state.enabledModels,
+          disabled: state.status === "disabled",
           lastChecked: state.lastChecked,
         }]),
       );
@@ -53,8 +54,22 @@ export default function App() {
     async function restoreConnections() {
       try {
         const savedIds = await listSavedProviderIds();
+        setStates((current) => {
+          const next = { ...current };
+          for (const provider of PROVIDERS) {
+            if (!savedIds.includes(provider.id)) {
+              next[provider.id] = { ...next[provider.id], status: "not_configured", models: [], enabledModels: [], lastChecked: undefined, error: undefined };
+            }
+          }
+          return next;
+        });
         for (const providerId of savedIds) {
           if (cancelled) return;
+          const savedMetadata = loadPersistedProviderStates()[providerId];
+          if (savedMetadata.status === "disabled") {
+            setStates((current) => ({ ...current, [providerId]: { ...current[providerId], status: "disabled" } }));
+            continue;
+          }
           setStates((current) => ({ ...current, [providerId]: { ...current[providerId], status: "connecting", error: undefined } }));
           try {
             const result = await testProvider(providerId);
@@ -357,7 +372,7 @@ function loadPersistedProviderStates(): Record<ProviderId, ProviderState> {
   try {
     const raw = localStorage.getItem("omnimind.providerMetadata.v1");
     if (!raw) return initial;
-    const parsed = JSON.parse(raw) as Partial<Record<ProviderId, { models?: ProviderState["models"]; enabledModels?: string[]; lastChecked?: string }>>;
+    const parsed = JSON.parse(raw) as Partial<Record<ProviderId, { models?: ProviderState["models"]; enabledModels?: string[]; disabled?: boolean; lastChecked?: string }>>;
     for (const provider of PROVIDERS) {
       const metadata = parsed[provider.id];
       if (!metadata) continue;
@@ -366,6 +381,7 @@ function loadPersistedProviderStates(): Record<ProviderId, ProviderState> {
         models: Array.isArray(metadata.models) ? metadata.models.filter((model) => typeof model.id === "string" && typeof model.name === "string") : [],
         enabledModels: Array.isArray(metadata.enabledModels) ? metadata.enabledModels.filter((id) => typeof id === "string") : [],
         lastChecked: typeof metadata.lastChecked === "string" ? metadata.lastChecked : undefined,
+        status: metadata.disabled === true ? "disabled" : "not_configured",
       };
     }
   } catch {
