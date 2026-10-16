@@ -5,7 +5,7 @@ This roadmap describes intended work, not completed features. Verify each phase 
 ## Phase 0 — Product and dependency audit
 
 - [x] Inspect OMNIMIND default branch and foundation documentation.
-- [x] Confirm the current OMNIMIND branch is documentation-only.
+- [x] Confirm the working branch contains an early desktop scaffold; the default branch remains unchanged.
 - [x] Inspect the existing OpenFallback Vercel project and latest deployment.
 - [x] Record the current deployment error: `STATIC_BUILD_NO_OUT_DIR`.
 - [x] Inspect the Framework-MCPs repository tree; no obvious OpenFallback source directory was found.
