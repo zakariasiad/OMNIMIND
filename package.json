@@ -3,11 +3,13 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "engines": { "node": ">=20.11.0" },
+  "engines": {
+    "node": ">=20.11.0"
+  },
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 1420",
-    "build": "tsc -b && vite build",
-    "typecheck": "tsc -b --pretty",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit --pretty",
     "test": "vitest run",
     "tauri": "tauri"
   },
