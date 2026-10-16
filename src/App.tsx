@@ -297,7 +297,7 @@ export default function App() {
         prompt: text,
         provider: usedModels,
         model: reviewer ? primary.id + " + " + reviewer.id : primary.id,
-        time: new Date().toLocaleTimeString(),
+        time: new Date().toISOString(),
       }, ...items]);
       setPrompt("");
     } catch (error) {
