@@ -348,7 +348,7 @@ export default function App() {
               <div className="mode-card disabled-mode" title="Planned for a future orchestration release"><Workflow size={17} /><div><strong>Deep research</strong><span>Multi-step review</span></div><span className="soon-tag">SOON</span></div>
             </div>
             <div className="composer">
-              <div className="composer-top"><span><MessageSquareText size={15} /> New task</span><span className="context-pill"><Command size={12} /> Local-first</span></div>
+              <div className="composer-top"><span><MessageSquareText size={15} /> New task</span><span className="context-pill"><Command size={12} /> Direct provider calls</span></div>
               <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="What would you like to accomplish today?" rows={4} onKeyDown={(event) => { if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) void runPrompt(); }} />
               <div className="composer-footer">
                 <button className="subtle-action" onClick={() => setView("models")}><Cpu size={15} /> {activeModels.length ? `${activeModels.length} enabled model${activeModels.length === 1 ? "" : "s"}` : "Connect a model"} <ChevronDown size={14} /></button>
@@ -363,6 +363,7 @@ export default function App() {
                 </div>
               </div>
               <div className="keyboard-hint">Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to run</div>
+              <p className="data-flow-note"><ShieldCheck size={14} /> Prompts and context needed for a task are sent directly to the selected AI provider. OMNIMIND cloud sync is not enabled in this build.</p>
             </div>
             {(busy || answer || runStatus !== "Ready for your first task") && <div className="result-card">
               <div className="result-head"><div><span className="result-icon"><Activity size={16} /></span><strong>Run output</strong></div><span className={`run-state ${busy ? "running" : answer ? "done" : "failed"}`}>{busy && <LoaderCircle size={12} className="spin" />}{runStatus}</span></div>
