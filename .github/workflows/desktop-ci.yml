@@ -27,6 +27,8 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install
+      - name: Summarize dependency audit
+        run: node scripts/audit-summary.mjs
       - name: Type check
         run: npm run typecheck
       - name: Unit tests
