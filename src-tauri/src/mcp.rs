@@ -287,6 +287,9 @@ mod tests {
             assert!(!is_public_address(ip), "{value} must be restricted");
         }
         assert!(is_public_address("8.8.8.8".parse().unwrap()));
+        assert!(!is_public_address("240.0.0.1".parse().unwrap()));
+        assert!(!is_public_address("2001:db8::1".parse().unwrap()));
+        assert!(is_public_address("2001:4860:4860::8888".parse().unwrap()));
     }
 
     #[test]
