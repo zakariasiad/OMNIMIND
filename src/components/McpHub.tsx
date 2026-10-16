@@ -75,7 +75,7 @@ export default function McpHub() {
         return [saved, ...current.filter((item) => item.endpoint !== result.endpoint)].slice(0, 20);
       });
       setEndpoint(result.endpoint);
-      setNotice({ kind: "success", text: `Connected to ${result.serverName}. Discovered ${result.tools.length} tool(s); no tools were executed.` });
+      setNotice({ kind: "success", text: `Inspected ${result.serverName}. Discovered ${result.tools.length} tool(s); no tools were executed.` });
     } catch (error) {
       setNotice({ kind: "error", text: safeError(error) });
     } finally {
@@ -92,10 +92,10 @@ export default function McpHub() {
   return (
     <section className="content-page">
       <div className="page-heading">
-        <div><span className="eyebrow">TOOLS & EXTENSIONS</span><h1>MCP Hub</h1><p>Connect to a remote Model Context Protocol server and inspect its declared tools before any tool execution is enabled.</p></div>
+        <div><span className="eyebrow">TOOLS & EXTENSIONS</span><h1>MCP Hub</h1><p>Inspect a remote Model Context Protocol endpoint and its declared tools. Each check is a short-lived session; persistent sessions and tool execution are not enabled.</p></div>
       </div>
       <div className="settings-group">
-        <div className="settings-title"><Activity size={18} /><div><strong>Add an MCP server</strong><span>Remote Streamable HTTP-compatible endpoints only in this initial implementation</span></div></div>
+        <div className="settings-title"><Activity size={18} /><div><strong>Inspect an MCP server</strong><span>Remote Streamable HTTP-compatible endpoints only in this initial implementation</span></div></div>
         <div style={{ padding: 16 }}>
           <label className="field-label" htmlFor="mcp-endpoint">MCP endpoint URL</label>
           <div className="secret-input">
@@ -125,7 +125,7 @@ export default function McpHub() {
         {servers.length ? servers.map((server) => <div className="setting-row" key={server.id}>
           <div style={{ minWidth: 0, flex: 1 }}><strong>{server.name}</strong><span style={{ overflowWrap: "anywhere" }}>{server.endpoint}</span><span>{server.toolNames.length} tools · Last checked {new Date(server.checkedAt).toLocaleString()}</span></div>
           <div style={{ display: "flex", gap: 7, flexShrink: 0 }}><button className="secondary-small" onClick={() => void connectServer(server.endpoint)} disabled={busy}><RefreshCw size={13} /> Test</button><button className="danger-small" onClick={() => removeServer(server.id)} disabled={busy}><Trash2 size={13} /> Remove</button></div>
-        </div>) : <div className="empty-state" style={{ margin: 16 }}><div className="empty-icon"><Activity size={22} /></div><h3>No MCP servers connected</h3><p>Add a compatible HTTPS endpoint to discover its declared tools. No tool will run without a later permission and approval layer.</p></div>}
+        </div>) : <div className="empty-state" style={{ margin: 16 }}><div className="empty-icon"><Activity size={22} /></div><h3>No MCP servers saved</h3><p>Inspect a compatible HTTPS endpoint to discover its declared tools. No tool will run without a later permission and approval layer.</p></div>}
       </div>
 
       <div className="security-callout"><ShieldAlert size={20} /><div><strong>Safe-by-default preview</strong><p>This first slice supports connection inspection and tool discovery only. Tool execution, OAuth, local stdio processes, per-tool permissions, and approval prompts are deliberately not enabled until their host-side enforcement and tests are complete.</p></div></div>
