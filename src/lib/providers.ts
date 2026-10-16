@@ -60,15 +60,14 @@ export function isProviderId(value: string): value is ProviderId {
 }
 
 export function getInitialProviderStates(): Record<ProviderId, ProviderState> {
-  return Object.fromEntries(
-    PROVIDERS.map((provider) => [
-      provider.id,
-      {
-        id: provider.id,
-        status: "not_configured",
-        models: [],
-        enabledModels: [],
-      } satisfies ProviderState,
-    ]),
-  ) as Record<ProviderId, ProviderState>;
+  const states = {} as Record<ProviderId, ProviderState>;
+  for (const provider of PROVIDERS) {
+    states[provider.id] = {
+      id: provider.id,
+      status: "not_configured",
+      models: [],
+      enabledModels: [],
+    };
+  }
+  return states;
 }
