@@ -4,7 +4,7 @@
 
 OMNIMIND AI is a desktop-first, general-purpose AI workspace that coordinates compatible AI models and specialized agent roles. It plans work, delegates tasks, shares scoped context, reviews outputs, handles recoverable failures, and synthesizes one deliverable with clear verification status.
 
-> **Project status:** Product and architecture foundation. The desktop application, provider connections, orchestration engine, and installers are not yet implemented or verified.
+> **Project status:** Early desktop scaffold on a draft pull request. A Tauri/React UI, initial API-key connections, provider adapters, a bounded task-graph engine, unit tests, and Windows CI have been added. This is not a release: native packaging and live provider connections still require verification.
 
 ## Product direction
 
@@ -36,7 +36,7 @@ Email/password automation, cookie extraction, and unofficial session reuse are o
 - **Live progress:** Typed local events first; use a hosted orchestration service only when a concrete requirement justifies it.
 - **Future mobile client:** Reuse portable TypeScript contracts where practical; implement platform-appropriate secure storage and permissions.
 
-These are proposed implementation choices, not claims that these components exist yet. Confirm dependency versions and platform compatibility during implementation.
+The desktop shell, React UI, initial provider adapters, native credential-vault commands, task-graph engine, and CI workflow now exist on the working branch. Local SQLite persistence, official OAuth, a generalized planner, and a production-ready mobile client remain planned. Confirm dependency versions and platform compatibility during implementation.
 
 ## Planned core screens
 
@@ -59,7 +59,7 @@ An existing Vercel project named `openfallback-ai-gateway` was found, but its la
 
 ## Development status
 
-The current work establishes product requirements and implementation plans on the `docs/foundation-specification` branch. The app, installer, provider connections, orchestration, automated tests, and deployment remain implementation work.
+The `docs/foundation-specification` branch contains the early desktop scaffold and its implementation plan. Frontend checks and unit tests passed in a recent GitHub Actions run; Windows installer jobs were still running at the last check. Native provider calls have not been validated with live credentials. The collaboration workflow is a basic draft → review → synthesis path, not a general autonomous planner. The draft PR has not been merged.
 
 ## License
 
