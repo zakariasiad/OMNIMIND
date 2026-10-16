@@ -1,75 +1,92 @@
 # OMNIMIND AI — Architecture
 
-## Architectural rule
+## Architecture decisions
 
-The orchestrator owns workflow state and policy. Models provide proposed plans and outputs; they do not own system state, permissions, or budget enforcement.
+- Desktop-first: Tauri 2 + React + TypeScript + Vite is the current proposed Windows client.
+- Portable core: keep provider contracts, task planning, DAG validation, scheduling policy, and result synthesis independent of the UI.
+- Local-first execution for the desktop MVP: keep run data on the user's device and call official provider APIs through a controlled native transport.
+- Credential isolation: provider secrets live in an OS-backed secure vault, not SQLite or UI state.
+- Mobile later: share stable TypeScript contracts where practical; use platform-specific secure storage and permission boundaries.
+- Gateway reuse is conditional. The existing Vercel deployment is failing and its source was not located in the inspected Framework-MCPs tree. Do not depend on it until verified.
 
 ## Logical component diagram
 
 ```mermaid
 flowchart TD
-    U[User] --> UI[Next.js Web App]
-    UI --> API[FastAPI Application API]
-    API --> AUTH[Authentication and Authorization]
-    API --> ORCH[Orchestrator]
-    ORCH --> PLAN[Planner and DAG Validator]
-    PLAN --> SCHED[Dependency-aware Scheduler]
-    SCHED --> WORKERS[Bounded Async Workers]
-    WORKERS --> ROUTER[Model Routing Policy]
-    ROUTER --> GW[OpenFallback AI Gateway]
-    GW --> PROVIDERS[Compatible Cloud Model Providers]
-    WORKERS --> TOOLS[Permission-scoped Tools and MCP]
-    ORCH --> DB[(PostgreSQL)]
-    WORKERS --> DB
-    WORKERS --> ART[Artifact Storage]
-    ORCH --> EVENTS[Run Event Stream]
-    EVENTS --> UI
+    USER[User] --> UI[React Desktop UI]
+    UI --> TAURI[Tauri Command Boundary]
+    TAURI --> CORE[Portable TypeScript Core]
+    TAURI --> VAULT[OS Credential Vault]
+    CORE --> HUB[Provider Connection Registry]
+    HUB --> ROUTER[Capability and Policy Router]
+    ROUTER --> ADAPTERS[Provider Adapters]
+    ADAPTERS --> CLOUD[Official Cloud Provider APIs]
+    CORE --> PLANNER[Planner and DAG Validator]
+    PLANNER --> SCHED[Bounded Dependency Scheduler]
+    SCHED --> WORKERS[Task Workers]
     WORKERS --> REVIEW[Review and Test Layer]
-    REVIEW --> ORCH
-    ORCH --> SYNTH[Final Synthesis]
-    SYNTH --> API
+    REVIEW --> CORE
+    CORE --> SYNTH[Final Synthesis]
+    CORE <--> DB[(Local SQLite)]
+    CORE --> EVENTS[Typed Run Events]
+    EVENTS --> UI
+    UI -. Future client .-> MOBILE[Mobile Companion]
+    MOBILE -. Shared contracts / optional service .-> CORE
 ```
+
+## Provider connection boundary
+
+1. User chooses a provider and an officially supported connection method.
+2. UI sends the secret to a narrowly scoped secure command; do not persist it in ordinary UI state longer than necessary.
+3. The secure command stores it in the OS credential vault and returns a non-secret credential reference.
+4. The provider adapter retrieves the credential only when needed.
+5. The adapter sends requests to an approved HTTPS endpoint and redacts sensitive data from errors.
+6. The connection registry records safe metadata and the result of the connection test.
+7. Disabling a connection excludes it from routing without deleting the credential. Removing it deletes the credential and connection metadata; revoke remote OAuth grants where supported.
+
+## Run sequence
+
+1. Validate request and execution policy.
+2. Planner produces a structured plan and acceptance criteria.
+3. Core validates the DAG, capability needs, privacy constraints, and resource budget.
+4. Scheduler dispatches ready tasks up to configured concurrency.
+5. Adapter executes a model call using the selected provider connection.
+6. Persist output references and state events.
+7. Reviewer or deterministic checks evaluate the output.
+8. Retry transient failures within strict limits, or choose a compatible enabled fallback.
+9. Synthesizer assembles accepted outputs.
+10. Finalization reports successful, failed, skipped, and unverified tasks accurately.
 
 ## Trust boundaries
 
-- The browser is untrusted; validate every request on the server.
-- Model outputs and retrieved content are untrusted input.
-- Tool execution must be mediated by explicit permissions and policy.
-- Provider credentials must remain server-side.
-- Artifacts and run data must be isolated by project authorization.
-- External side effects require idempotency protection and, when appropriate, human approval.
-
-## Execution sequence
-
-1. API creates a run with a policy and budget snapshot.
-2. Planner proposes tasks and acceptance criteria.
-3. Server validates the DAG and stores the plan.
-4. Scheduler dispatches ready tasks within concurrency limits.
-5. Worker calls the model gateway through a provider-neutral interface.
-6. Result and event are persisted before dependent work is released.
-7. Reviewer or deterministic tests evaluate the output.
-8. Failed tasks retry only when policy permits.
-9. Synthesizer creates the final artifact from accepted outputs.
-10. Run finalization checks all required tasks and reports exact status.
+- UI input is untrusted; validate in the core and privileged command handlers.
+- Model outputs and retrieved content are untrusted data, never policy instructions.
+- Provider credentials are secret material and must never enter model context or logs.
+- Custom provider URLs require validation and restrictions to avoid SSRF or local-network access.
+- Tools and MCP servers require explicit permission scopes and timeouts.
+- External side effects require idempotency protection and, where appropriate, user approval.
+- Hosted sync or orchestration is a separate trust boundary and must not be silently introduced.
 
 ## Failure handling
 
-| Failure | Expected response |
+| Failure | Response |
 | --- | --- |
-| Provider rate limit | Honor retry guidance where available; try a compatible provider if allowed |
-| Provider timeout | Bounded retry; persist attempt state |
-| Invalid request | Do not retry unchanged input blindly; surface diagnostics |
-| No compatible provider | Mark task blocked or failed and explain why |
-| Worker interruption | Resume from persisted state without duplicating completed side effects |
-| Reviewer disagreement | Compare evidence and criteria; escalate if unresolved |
-| Budget exhausted | Stop dispatching and report partial progress |
-| User cancellation | Stop cancellable tasks and mark remaining work accurately |
+| Invalid credentials | Mark `AUTH_REQUIRED`; show safe diagnostic and allow editing/removal |
+| Provider rate limit | Honor retry metadata where available; apply bounded delay or compatible fallback |
+| Timeout | Cancel request where possible; retry only within policy |
+| Unsupported capability | Exclude that model from the task or choose a compatible one |
+| No eligible provider | Block task and explain the constraint |
+| Worker/app interruption | Resume from persisted state without duplicating completed side effects |
+| Reviewer disagreement | Compare evidence and criteria; ask the user if unresolved |
+| Budget exhausted | Stop dispatching and report partial completion |
+| User cancellation | Stop cancellable tasks and preserve accurate state |
+| Credential vault unavailable | Fail closed; do not silently write secrets to a plaintext fallback |
 
-## Deployment principles
+## Build and release principles
 
-- Keep the web UI, orchestration API, and gateway boundaries explicit.
-- Verify existing repository and deployment configuration before changing infrastructure.
-- Do not assume the current gateway deployment is healthy.
-- Use environment-specific secrets and configuration.
-- Add health checks, structured logs, and trace IDs.
-- Run automated tests before promoting a deployment.
+- Keep the desktop UI, privileged Tauri commands, portable core, and provider adapters separated.
+- Validate Windows support and secure-storage integration before release.
+- Use lockfiles and reproducible build scripts.
+- Run type checks, unit tests, adapter contract tests, and packaging checks before release.
+- Do not claim the gateway is healthy unless API and deployment checks pass.
+- Do not create cloud resources or introduce hosted data flows without a documented need and approval.
