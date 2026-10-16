@@ -1,5 +1,5 @@
 use reqwest::{header, Client, StatusCode};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::{json, Value};
 use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
 use std::time::Duration;
