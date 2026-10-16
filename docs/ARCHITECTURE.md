@@ -31,13 +31,14 @@ flowchart TD
     CORE <--> DB[(Local SQLite)]
     CORE --> EVENTS[Typed Run Events]
     EVENTS --> UI
-    CORE -. Planned .-> MCP[MCP Permission Gateway]
-    MCP -. User-approved tools .-> SERVERS[User-configured MCP Servers]
+    CORE --> MCP[Native MCP Inspector]
+    MCP -. HTTPS discovery only .-> SERVERS[Remote MCP Servers]
+    MCP -. Future gated calls .-> TOOLS[Permission Gateway]
     UI -. Future client .-> MOBILE[Mobile Companion]
     MOBILE -. Shared contracts / optional service .-> CORE
 ```
 
-The MCP gateway shown is a target architecture only; it is not present in the current executable build. Developer workflow connectors used to modify the repository are separate from the app's runtime capabilities.
+The current executable branch includes a native MCP inspector for HTTPS endpoint initialization and tool discovery, but no tool-execution permission gateway yet. The permission gateway and tool calls shown are future architecture. Developer workflow connectors used to modify the repository are separate from the app's runtime capabilities.
 
 ## Provider connection boundary
 
@@ -51,13 +52,13 @@ The MCP gateway shown is a target architecture only; it is not present in the cu
 
 ## MCP trust and execution boundary
 
-1. A user explicitly configures a server and reviews its transport, executable or URL, declared capabilities, and requested permissions.
-2. The client validates configuration and starts/connects only after explicit confirmation.
-3. A dedicated policy gateway validates tool name, schema, permission scope, timeout, output size, and current user approval.
-4. The model may propose a tool call but cannot authorize it or change permissions.
-5. Server output is treated as untrusted data, sanitized for display, and clearly separated from policy instructions.
-6. Consequential actions require a confirmation screen showing the target and arguments.
-7. Audit events redact secrets and sensitive values; users can disable or remove a server and revoke credentials.
+1. A user explicitly supplies a remote endpoint for inspection.
+2. The native inspector requires HTTPS, rejects URL credentials/query/fragment, resolves and pins public addresses, blocks private/local destinations, and disables redirects.
+3. The client negotiates only MCP protocol version 2025-11-25, applies timeouts and strict response/tool metadata limits, and discovers declared tools.
+4. Server metadata is treated as untrusted and shown as data; the model is not given automatic authority over these tools.
+5. Tool execution is not available in the current branch. Before it is enabled, a dedicated policy gateway must validate tool name/schema, permission scope, timeout, output size, and explicit user approval.
+6. Consequential actions must show the target and arguments for confirmation.
+7. Audit events must redact secrets and sensitive values; users must be able to disable/remove servers and revoke credentials.
 
 Do not support automatic server installation, shell-string execution, credential scraping, or unrestricted filesystem/network access. See [MCP Integrations](MCP_INTEGRATIONS.md) for transport and acceptance criteria.
 
