@@ -126,11 +126,15 @@ async fn send_notification(
     endpoint: &Url,
     session: Option<&str>,
     body: Value,
+    protocol_version: Option<&str>,
 ) -> Result<(), String> {
     let mut request = client.post(endpoint.clone())
         .header(header::CONTENT_TYPE, "application/json")
         .header(header::ACCEPT, "application/json, text/event-stream")
         .json(&body);
+    if let Some(version) = protocol_version {
+        request = request.header("MCP-Protocol-Version", version);
+    }
     if let Some(session_id) = session {
         if session_id.len() > 256 || session_id.chars().any(char::is_control) {
             return Err("The MCP server returned an invalid session identifier.".into());
@@ -150,6 +154,7 @@ async fn post_rpc(
     endpoint: &Url,
     session: Option<&str>,
     body: Value,
+    protocol_version: Option<&str>,
 ) -> Result<(Value, Option<String>), String> {
     let mut request = client.post(endpoint.clone())
         .header(header::CONTENT_TYPE, "application/json")
@@ -161,6 +166,7 @@ async fn post_rpc(
         }
         request = request.header("mcp-session-id", session_id);
     }
+    let expected_id = body.get("id").cloned();
     let response = request.send().await.map_err(|error| {
         if error.is_timeout() { "The MCP server request timed out.".to_string() }
         else { "Could not connect to the MCP server. Check the endpoint and network.".to_string() }
@@ -174,7 +180,11 @@ async fn post_rpc(
             _ => format!("The MCP server returned HTTP {}.", status.as_u16()),
         });
     }
-    read_mcp_payload(response).await
+    let (payload, next_session) = read_mcp_payload(response).await?;
+    if payload.get("id") != expected_id.as_ref() {
+        return Err("The MCP server returned a mismatched JSON-RPC response ID.".into());
+    }
+    Ok((payload, next_session))
 }
 
 #[tauri::command]
@@ -191,7 +201,7 @@ pub async fn inspect_mcp_server(endpoint: String) -> Result<McpServerInspection,
             "capabilities": {},
             "clientInfo": { "name": "OMNIMIND AI", "version": env!("CARGO_PKG_VERSION") }
         }
-    })).await?;
+    }), None).await?;
     let result = initialized.get("result").ok_or_else(|| "The MCP server returned no initialization result.".to_string())?;
     let protocol_version = result.get("protocolVersion").and_then(Value::as_str)
         .ok_or_else(|| "The MCP server did not provide a protocol version.".to_string())?;
@@ -205,13 +215,13 @@ pub async fn inspect_mcp_server(endpoint: String) -> Result<McpServerInspection,
     send_notification(&client, &url, session.as_deref(), json!({
         "jsonrpc": "2.0",
         "method": "notifications/initialized"
-    })).await?;
+    }), Some(protocol_version)).await?;
     let (listed, next_session) = post_rpc(&client, &url, session.as_deref(), json!({
         "jsonrpc": "2.0",
         "id": 2,
         "method": "tools/list",
         "params": {}
-    })).await?;
+    }), Some(protocol_version)).await?;
     let result = listed.get("result").ok_or_else(|| "The MCP server returned no tools-list result.".to_string())?;
     let entries = result.get("tools").and_then(Value::as_array)
         .ok_or_else(|| "The MCP server returned an invalid tools list.".to_string())?;
