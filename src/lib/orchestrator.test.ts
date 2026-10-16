@@ -43,6 +43,32 @@ describe("task graph execution", () => {
     expect(result.tasks[2].output).toBe("final result");
   });
 
+  it("does not retry non-transient errors", async () => {
+    let attempts = 0;
+    const result = await executeTaskGraph(
+      [{ id: "auth", title: "Authentication", input: null, dependsOn: [] }],
+      async () => { attempts += 1; throw new Error("API key rejected"); },
+      { maxAttempts: 3 },
+    );
+    expect(attempts).toBe(1);
+    expect(result.tasks[0].status).toBe("failed");
+  });
+
+  it("retries transient errors within the configured limit", async () => {
+    let attempts = 0;
+    const result = await executeTaskGraph(
+      [{ id: "temporary", title: "Temporary failure", input: null, dependsOn: [] }],
+      async () => {
+        attempts += 1;
+        if (attempts < 2) throw new Error("connection timed out");
+        return "recovered";
+      },
+      { maxAttempts: 2 },
+    );
+    expect(attempts).toBe(2);
+    expect(result.tasks[0].status).toBe("succeeded");
+  });
+
   it("blocks dependent tasks after a required task fails", async () => {
     const tasks: TaskDefinition[] = [
       { id: "first", title: "First", input: null, dependsOn: [] },
