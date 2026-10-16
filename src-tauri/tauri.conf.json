@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "OMNIMIND AI",
+  "version": "0.1.0",
+  "identifier": "ai.omnimind.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "OMNIMIND AI",
+        "width": 1360,
+        "height": 900,
+        "minWidth": 820,
+        "minHeight": 650,
+        "resizable": true,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "shortDescription": "A coordinated multi-model AI workspace",
+    "longDescription": "OMNIMIND AI coordinates model providers to produce one coherent result.",
+    "category": "Productivity"
+  }
+}
