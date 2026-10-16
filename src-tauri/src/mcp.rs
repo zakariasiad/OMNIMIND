@@ -160,6 +160,9 @@ async fn post_rpc(
         .header(header::CONTENT_TYPE, "application/json")
         .header(header::ACCEPT, "application/json, text/event-stream")
         .json(&body);
+    if let Some(version) = protocol_version {
+        request = request.header("MCP-Protocol-Version", version);
+    }
     if let Some(session_id) = session {
         if session_id.len() > 256 || session_id.chars().any(char::is_control) {
             return Err("The MCP server returned an invalid session identifier.".into());
