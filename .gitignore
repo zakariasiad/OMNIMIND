@@ -12,3 +12,5 @@ Thumbs.db
 .vscode/
 .idea/
 coverage/
+
+src-tauri/icons/icon.ico
