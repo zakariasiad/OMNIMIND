@@ -1,12 +1,16 @@
 # OMNIMIND AI — Technical Specification
 
-- **Version:** 0.2
-- **Status:** Foundation specification; implementation not yet verified
+- **Version:** 0.3
+- **Status:** Early implementation scaffold; not release-ready
 - **Product:** Desktop-first multi-model AI collaboration workspace
 - **Initial platform:** Windows desktop
 - **Future platform:** Mobile companion
 - **Provider policy:** Free-cloud-first, extensible to user-authorized paid providers
 - **Gateway status:** Existing Vercel project found, but deployment failed and source location is unverified
+
+## Current implementation snapshot
+
+The working branch contains a Tauri 2 desktop shell, React/TypeScript workspace and Model Hub, native Windows credential-vault commands, initial Groq/OpenRouter/Gemini-compatible API adapters, a bounded task-graph engine, unit tests, and a Windows CI workflow. The current multi-model workflow is a basic draft → review → synthesis path. Provider connections have not been verified with live credentials, the installer job still requires a successful result and hands-on installation testing, and persistent SQLite run history, OAuth, a general-purpose planner, and mobile are not implemented.
 
 ## 1. Product objective
 
