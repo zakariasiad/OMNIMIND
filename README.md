@@ -56,7 +56,7 @@ OpenFallback AI Gateway is intended to be the model-access layer, not a competin
 
 ## Development status
 
-The repository currently contains the initial project README and license. The current work establishes the English-language project foundation and implementation plan. Application features, provider integrations, tests, and deployments must be added and verified in subsequent steps.
+The repository began with an initial README and license. The docs/foundation-specification branch adds the English-language product foundation, technical specification, architecture overview, and phased implementation roadmap. Application features, provider integrations, tests, and deployments still need to be implemented and verified.
 
 ## License
 
