@@ -36,7 +36,7 @@ Email/password automation, cookie extraction, and unofficial session reuse are o
 - **Live progress:** Typed local events first; use a hosted orchestration service only when a concrete requirement justifies it.
 - **Future mobile client:** Reuse portable TypeScript contracts where practical; implement platform-appropriate secure storage and permissions.
 
-The desktop shell, React UI, initial provider adapters, native credential-vault commands, task-graph engine, basic draft-review-synthesis workflow, bounded local run-history storage, and CI workflow now exist on the working branch. Durable SQLite persistence for detailed run state, official OAuth, a generalized planner, runtime MCP client support, and a production-ready mobile client remain planned. Confirm dependency versions and platform compatibility during implementation.
+The desktop shell, React UI, initial provider adapters, native credential-vault commands, task-graph engine, basic draft-review-synthesis workflow, bounded local run-history storage, and CI workflow now exist on the working branch. Durable SQLite persistence for detailed run state, official OAuth, a generalized planner, full MCP tool execution/permissions, local stdio MCP servers, and a production-ready mobile client remain planned. The MCP Hub currently supports limited HTTPS server inspection and tool discovery only. Confirm dependency versions and platform compatibility during implementation.
 
 ## Planned core screens
 
@@ -60,7 +60,7 @@ An existing Vercel project named `openfallback-ai-gateway` was found, but its la
 
 ## Development status
 
-The `docs/foundation-specification` branch contains the early desktop scaffold and its implementation plan. Frontend checks and unit tests passed in a recent GitHub Actions run; Windows installer jobs were still running at the last check. Native provider calls have not been validated with live credentials. The collaboration workflow is a basic draft → review → synthesis path, not a general autonomous planner. Runtime MCP support is documented as planned, not implemented. The draft PR has not been merged.
+The `docs/foundation-specification` branch contains the early desktop scaffold and its implementation plan. Frontend checks and unit tests passed in a recent GitHub Actions run; Windows installer jobs were still running at the last check. Native provider calls have not been validated with live credentials. The collaboration workflow is a basic draft → review → synthesis path, not a general autonomous planner. The initial MCP Hub supports native HTTPS endpoint inspection and bounded tool discovery; tool execution, OAuth, local stdio, and per-tool authorization are not enabled yet. The draft PR has not been merged.
 
 ## License
 
